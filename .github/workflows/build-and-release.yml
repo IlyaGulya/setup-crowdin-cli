@@ -5,7 +5,7 @@ on:
     # Run every day at 00:00 UTC
     - cron: '0 0 * * *'
   workflow_dispatch:
-    # Allow manual triggering
+  # Allow manual triggering
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '23'
 
 jobs:
   check-for-updates:
@@ -62,27 +62,16 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-latest
-            os: linux
-            arch: amd64
-            artifact: crowdin-cli-linux
-            args: "--static"
+            artifact: crowdin-cli-linux-amd64
+          - runner: ubuntu-24.04-arm
+            artifact: crowdin-cli-linux-arm64
           - runner: macos-latest
-            os: macos
-            arch: arm64
             artifact: crowdin-cli-macos-arm64
-            args: "--target=darwin-aarch64"
-          - runner: macos-latest
-            os: macos
-            arch: x86_64
-            artifact: crowdin-cli-macos
-            args: "--target=darwin-amd64"
-          - runner: ubuntu-latest
-            os: windows
-            arch: amd64
-            artifact: crowdin-cli-windows.exe
-            args: "--target=windows-amd64"
+          - runner: macos-13
+            artifact: crowdin-cli-macos-x86_64
     steps:
       - name: Download Crowdin CLI JAR
+        # language=bash
         run: |
           VERSION=${{ needs.check-for-updates.outputs.version }}
           curl -L -o crowdin-cli.jar "https://github.com/crowdin/crowdin-cli/releases/download/v${VERSION}/crowdin-cli.jar"
@@ -91,35 +80,24 @@ jobs:
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          components: 'native-image'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native image
+        # language=bash
         run: |
-          native-image -jar crowdin-cli.jar \
-            -H:Name=${{ matrix.artifact }} \
+          native-image -Os -jar crowdin-cli.jar \
             --no-fallback \
-            ${{ matrix.args }} \
-            -H:+ReportExceptionStackTraces
-
-      - name: Create checksum
-        run: |
-          if [ "${{ matrix.os }}" = "windows" ]; then
-            sha256sum ${{ matrix.artifact }} > ${{ matrix.artifact }}.sha256
-          else
-            sha256sum ${{ matrix.artifact }} > ${{ matrix.artifact }}.sha256
-          fi
+            -H:+ReportExceptionStackTraces \
+            ${{ matrix.artifact }}
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: |
-            ${{ matrix.artifact }}
-            ${{ matrix.artifact }}.sha256
+          path: ${{ matrix.artifact }}
 
   create-release:
-    needs: [check-for-updates, build-native]
+    needs: [ check-for-updates, build-native ]
     if: ${{ needs.check-for-updates.outputs.new_version == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -129,18 +107,13 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Prepare release files
+      - name: Generate sha256 checksums
+        # language=bash
         run: |
-          VERSION=${{ needs.check-for-updates.outputs.version }}
-          mkdir -p release-files
-          cp release-assets/crowdin-cli-linux release-files/
-          cp release-assets/crowdin-cli-linux.sha256 release-files/
-          cp release-assets/crowdin-cli-macos release-files/
-          cp release-assets/crowdin-cli-macos.sha256 release-files/
-          cp release-assets/crowdin-cli-macos-arm64 release-files/
-          cp release-assets/crowdin-cli-macos-arm64.sha256 release-files/
-          cp release-assets/crowdin-cli-windows.exe release-files/
-          cp release-assets/crowdin-cli-windows.exe.sha256 release-files/
+          cd release-assets
+          for file in *; do
+            sha256sum $file > $file.sha256
+          done
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -153,7 +126,7 @@ jobs:
             These are built using GraalVM native-image for better performance and no Java dependency.
             
             Original Crowdin CLI: https://github.com/crowdin/crowdin-cli/releases/tag/v${{ needs.check-for-updates.outputs.version }}
-          files: release-files/*
+          files: release-assets/*
           draft: false
           prerelease: false
           make_latest: true
