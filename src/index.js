@@ -34,7 +34,7 @@ async function run() {
     
     // Download our custom-built native executable
     // We're using our own repository's releases which contain the GraalVM-built native executables
-    const downloadUrl = `https://github.com/${github.context.repo.owner}/${github.context.repo.repo}/releases/download/v${versionToDownload}/crowdin-cli-${platform}${extension}`;
+    const downloadUrl = `https://github.com/IlyaGulya/setup-crowdin-cli/releases/download/v${versionToDownload}/crowdin-cli-${platform}${extension}`;
     core.info(`Downloading from ${downloadUrl}`);
     
     const downloadPath = await tc.downloadTool(downloadUrl);
@@ -86,8 +86,8 @@ async function getLatestVersion() {
     // This is where our custom-built executables are stored
     const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
     const { data } = await octokit.rest.repos.getLatestRelease({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo
+      owner: 'IlyaGulya',
+      repo: 'setup-crowdin-cli'
     });
     
     return data.tag_name.replace(/^v/, '');
