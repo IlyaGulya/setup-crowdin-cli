@@ -70,11 +70,54 @@ jobs:
           - runner: macos-13
             artifact: crowdin-cli-macos-x86_64
     steps:
-      - name: Download Crowdin CLI JAR
+      - name: Download and Extract Crowdin CLI
         # language=bash
         run: |
           VERSION=${{ needs.check-for-updates.outputs.version }}
-          curl -L -o crowdin-cli.jar "https://github.com/crowdin/crowdin-cli/releases/download/v${VERSION}/crowdin-cli.jar"
+          # Download the zip file
+          echo "Downloading Crowdin CLI zip for version ${VERSION}..."
+          curl -L -o crowdin-cli.zip "https://github.com/crowdin/crowdin-cli/releases/download/v${VERSION}/crowdin-cli.zip"
+          
+          # Check if download was successful
+          if [ ! -f crowdin-cli.zip ]; then
+            echo "Failed to download crowdin-cli.zip"
+            exit 1
+          fi
+          
+          # Create a directory and extract the zip
+          echo "Extracting zip file..."
+          mkdir -p crowdin-cli-extract
+          unzip -q crowdin-cli.zip -d crowdin-cli-extract
+          
+          # Verify the JAR file exists
+          if [ ! -f "crowdin-cli-extract/${VERSION}/crowdin-cli.jar" ]; then
+            echo "JAR file not found at expected path: crowdin-cli-extract/${VERSION}/crowdin-cli.jar"
+            echo "Contents of extracted directory:"
+            find crowdin-cli-extract -type f | sort
+            
+            # Try to find the JAR file anywhere in the extracted directory
+            JAR_PATH=$(find crowdin-cli-extract -name "crowdin-cli.jar" | head -n 1)
+            
+            if [ -n "$JAR_PATH" ]; then
+              echo "Found JAR file at alternative location: $JAR_PATH"
+              cp "$JAR_PATH" ./crowdin-cli.jar
+            else
+              echo "Failed to download JAR file"
+              exit 1
+            fi
+          else
+            # Move the JAR file to the expected location
+            echo "Moving JAR file to working directory..."
+            mv crowdin-cli-extract/${VERSION}/crowdin-cli.jar ./crowdin-cli.jar
+          fi
+          
+          # Verify the JAR file was moved successfully
+          if [ ! -f crowdin-cli.jar ]; then
+            echo "Failed to move JAR file to working directory"
+            exit 1
+          fi
+          
+          echo "Successfully extracted crowdin-cli.jar"
 
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
