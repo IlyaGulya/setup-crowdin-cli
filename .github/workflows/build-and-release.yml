@@ -110,6 +110,8 @@ jobs:
   create-release:
     needs: [ check-for-updates, build-native ]
     if: ${{ needs.check-for-updates.outputs.new_version == 'true' }}
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
