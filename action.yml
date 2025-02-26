@@ -1,0 +1,16 @@
+name: 'Setup Crowdin CLI'
+description: 'Downloads and sets up Crowdin CLI in the GitHub runner tool cache'
+author: 'Ilya Gulya'
+branding:
+  icon: 'globe'
+  color: 'blue'
+
+inputs:
+  version:
+    description: 'Version of Crowdin CLI to use (e.g., 3.7.1). Defaults to latest.'
+    required: false
+    default: 'latest'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js' 

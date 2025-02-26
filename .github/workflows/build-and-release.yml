@@ -1,0 +1,161 @@
+name: Build and Release Crowdin CLI
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  check-for-updates:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.check-version.outputs.new_version }}
+      version: ${{ steps.check-version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for new Crowdin CLI version
+        id: check-version
+        # language=bash
+        run: |
+          # Get the latest release from Crowdin CLI repository
+          LATEST_VERSION=$(curl -s https://api.github.com/repos/crowdin/crowdin-cli/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "Latest Crowdin CLI version: $LATEST_VERSION"
+          
+          # For tag-based triggers, use the tag version
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+            echo "Using tag version: $TAG_VERSION"
+            echo "new_version=true" >> $GITHUB_OUTPUT
+            echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check if we already have a release for this version
+          if curl -s -f -I "https://github.com/${{ github.repository }}/releases/tag/v$LATEST_VERSION" > /dev/null; then
+            echo "Release for version $LATEST_VERSION already exists. Skipping."
+            echo "new_version=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version $LATEST_VERSION detected. Will create a release."
+            echo "new_version=true" >> $GITHUB_OUTPUT
+            echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          fi
+
+  build-native:
+    needs: check-for-updates
+    if: ${{ needs.check-for-updates.outputs.new_version == 'true' }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            os: linux
+            arch: amd64
+            artifact: crowdin-cli-linux
+            args: "--static"
+          - runner: macos-latest
+            os: macos
+            arch: arm64
+            artifact: crowdin-cli-macos-arm64
+            args: "--target=darwin-aarch64"
+          - runner: macos-latest
+            os: macos
+            arch: x86_64
+            artifact: crowdin-cli-macos
+            args: "--target=darwin-amd64"
+          - runner: ubuntu-latest
+            os: windows
+            arch: amd64
+            artifact: crowdin-cli-windows.exe
+            args: "--target=windows-amd64"
+    steps:
+      - name: Download Crowdin CLI JAR
+        run: |
+          VERSION=${{ needs.check-for-updates.outputs.version }}
+          curl -L -o crowdin-cli.jar "https://github.com/crowdin/crowdin-cli/releases/download/v${VERSION}/crowdin-cli.jar"
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native image
+        run: |
+          native-image -jar crowdin-cli.jar \
+            -H:Name=${{ matrix.artifact }} \
+            --no-fallback \
+            ${{ matrix.args }} \
+            -H:+ReportExceptionStackTraces
+
+      - name: Create checksum
+        run: |
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            sha256sum ${{ matrix.artifact }} > ${{ matrix.artifact }}.sha256
+          else
+            sha256sum ${{ matrix.artifact }} > ${{ matrix.artifact }}.sha256
+          fi
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            ${{ matrix.artifact }}.sha256
+
+  create-release:
+    needs: [check-for-updates, build-native]
+    if: ${{ needs.check-for-updates.outputs.new_version == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Prepare release files
+        run: |
+          VERSION=${{ needs.check-for-updates.outputs.version }}
+          mkdir -p release-files
+          cp release-assets/crowdin-cli-linux release-files/
+          cp release-assets/crowdin-cli-linux.sha256 release-files/
+          cp release-assets/crowdin-cli-macos release-files/
+          cp release-assets/crowdin-cli-macos.sha256 release-files/
+          cp release-assets/crowdin-cli-macos-arm64 release-files/
+          cp release-assets/crowdin-cli-macos-arm64.sha256 release-files/
+          cp release-assets/crowdin-cli-windows.exe release-files/
+          cp release-assets/crowdin-cli-windows.exe.sha256 release-files/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.check-for-updates.outputs.version }}
+          name: Crowdin CLI v${{ needs.check-for-updates.outputs.version }}
+          body: |
+            Native executables for Crowdin CLI v${{ needs.check-for-updates.outputs.version }}
+            
+            These are built using GraalVM native-image for better performance and no Java dependency.
+            
+            Original Crowdin CLI: https://github.com/crowdin/crowdin-cli/releases/tag/v${{ needs.check-for-updates.outputs.version }}
+          files: release-files/*
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
