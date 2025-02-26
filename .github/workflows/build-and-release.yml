@@ -76,7 +76,7 @@ jobs:
           VERSION=${{ needs.check-for-updates.outputs.version }}
           # Download the zip file
           echo "Downloading Crowdin CLI zip for version ${VERSION}..."
-          curl -L -o crowdin-cli.zip "https://github.com/crowdin/crowdin-cli/releases/download/v${VERSION}/crowdin-cli.zip"
+          curl -L -o crowdin-cli.zip "https://github.com/crowdin/crowdin-cli/releases/download/${VERSION}/crowdin-cli.zip"
           unzip -j crowdin-cli.zip
                     
           # Verify the JAR file was moved successfully
