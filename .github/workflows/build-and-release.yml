@@ -28,7 +28,7 @@ concurrency:
 env:
   JAVA_VERSION: '23'
   REGISTRY: ghcr.io
-  BASE_IMAGE_NAME: ${{ github.repository_owner }}/crowdin-cli
+  BASE_IMAGE_NAME: ilyagulya/crowdin-cli
 
 jobs:
   check-for-updates:
