@@ -36,7 +36,7 @@ jobs:
     outputs:
       new_version: ${{ steps.check-version.outputs.new_version }}
       version: ${{ steps.check-version.outputs.version }}
-      mark_as_latest: ${{ github.event_name == 'schedule' || inputs.mark_as_latest }}
+      mark_as_latest: ${{ github.event_name == 'schedule' || inputs.mark_as_latest || (github.event_name == 'workflow_dispatch' && inputs.version == '') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
