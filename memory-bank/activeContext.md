@@ -13,6 +13,7 @@ We have implemented, fixed, and improved the two main components:
    - **Optimized to download JAR directly in build jobs**
    - **Simplified Docker image building by using a single platform (linux/amd64)**
    - **Added control over which versions are marked as "latest"**
+   - **Integrated AWT stripper to remove AWT dependencies from the JAR before building native images**
 
 2. **Setup Action**
    - A GitHub Action that downloads the requested version of our custom-built Crowdin CLI
@@ -45,6 +46,8 @@ We have implemented, fixed, and improved the two main components:
 - **Added a version marker container for version checking**
 - **Added control over which versions are marked as "latest" through workflow inputs**
 - **Simplified the "mark as latest" logic using GitHub Actions conditional expressions**
+- **Integrated AWT stripper to remove AWT dependencies from the JAR before building native images**
+- **Updated Docker image labels to indicate AWT-stripped versions**
 
 ## Next Steps
 
@@ -59,6 +62,8 @@ We have implemented, fixed, and improved the two main components:
    - **Test the simplified Docker image building process**
    - **Verify that the version marker container works correctly for version checking**
    - **Test the "mark as latest" functionality with different scenarios**
+   - **Test the AWT stripper integration to ensure it correctly removes AWT dependencies**
+   - **Verify that the AWT-stripped binaries work correctly for non-AWT operations**
 
 2. Make adjustments based on testing results
    - Fix any issues found during testing
@@ -83,6 +88,9 @@ We have implemented, fixed, and improved the two main components:
    - **How to test the simplified Docker image building process**
    - **How to verify that the version marker container works correctly**
    - **How to test the "mark as latest" functionality**
+   - **How to test the AWT stripper integration**
+   - **How to verify that AWT-stripped binaries work correctly for non-AWT operations**
+   - **How to handle potential failures in the AWT stripping process**
 
 2. **Error Handling Improvements**
    - How to handle network issues
@@ -91,6 +99,8 @@ We have implemented, fixed, and improved the two main components:
    - How to handle failures in specific matrix jobs
    - **How to handle Docker image building failures**
    - **How to handle version marker container failures**
+   - **How to handle AWT stripper failures**
+   - **How to provide clear error messages for AWT-related operations that are now unsupported**
 
 3. **Performance Optimization**
    - How to optimize the download and caching process
@@ -99,6 +109,7 @@ We have implemented, fixed, and improved the two main components:
    - **How to further optimize the workflow if needed**
    - **How to fine-tune the custom reflection configuration for optimal results**
    - **How to optimize the Docker image building process**
+   - **How to optimize the AWT stripping process**
 
 4. **Documentation Improvements**
    - How to make the documentation more user-friendly
@@ -108,4 +119,6 @@ We have implemented, fixed, and improved the two main components:
    - **How to document the optimized build process**
    - **How to document the custom reflection feature and its benefits**
    - **How to document the simplified Docker image building process**
-   - **How to document the "mark as latest" functionality** 
+   - **How to document the "mark as latest" functionality**
+   - **How to document the AWT stripper integration and its benefits**
+   - **How to document which AWT-related operations are now unsupported** 

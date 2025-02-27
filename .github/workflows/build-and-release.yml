@@ -127,6 +127,26 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run AWT Stripper
+        # language=bash
+        run: |
+          # Run the stripper to remove AWT calls
+          echo "Running AWT stripper to remove AWT calls from the JAR..."
+          cd stripper
+          ./gradlew run --args "../crowdin-cli.jar ../crowdin-cli-stripped.jar"
+          cd ..
+          
+          # Verify the stripped JAR was created successfully
+          if [ ! -f crowdin-cli-stripped.jar ]; then
+            echo "Failed to create stripped JAR file"
+            exit 1
+          fi
+          
+          echo "Successfully created stripped JAR file"
+
       - name: Compile and package reflection feature
         # language=bash
         run: |
@@ -134,7 +154,7 @@ jobs:
           mkdir -p out
           
           # Compile the reflection feature
-          javac -cp crowdin-cli.jar -d out CrowdinReflectionFeature.java
+          javac -cp crowdin-cli-stripped.jar -d out CrowdinReflectionFeature.java
           
           # Package the feature into a JAR
           jar cf feature.jar -C out .
@@ -144,7 +164,7 @@ jobs:
       - name: Build native image
         # language=bash
         run: |
-          native-image -Os -cp feature.jar:crowdin-cli.jar \
+          native-image -Os -cp feature.jar:crowdin-cli-stripped.jar \
             -H:Features=CrowdinReflectionFeature \
             -H:IncludeResources="META-INF/services/.*|crowdin.*|messages/.*" \
             --no-fallback --enable-url-protocols=http,https \

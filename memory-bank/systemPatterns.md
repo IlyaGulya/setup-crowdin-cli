@@ -15,6 +15,7 @@ The project consists of two main components:
    - **Creates Docker images to store and distribute binaries**
    - **Uses a version marker container for version checking**
    - **Controls which versions are marked as "latest"**
+   - **Uses AWT stripper to remove AWT dependencies from the JAR before building native images**
 
 2. **Setup Action**
    - Downloads the requested version of Crowdin CLI
@@ -34,17 +35,21 @@ flowchart TD
 
     subgraph "Build Native Executables"
         D1[Linux Build] --> D1a[Download JAR]
-        D1a --> D1b[Build Binary]
-        D1b --> D1c[Test Binary]
+        D1a --> D1b[Strip AWT Dependencies]
+        D1b --> D1c[Build Binary]
+        D1c --> D1d[Test Binary]
         D2[macOS x64 Build] --> D2a[Download JAR]
-        D2a --> D2b[Build Binary]
-        D2b --> D2c[Test Binary]
+        D2a --> D2b[Strip AWT Dependencies]
+        D2b --> D2c[Build Binary]
+        D2c --> D2d[Test Binary]
         D3[macOS arm64 Build] --> D3a[Download JAR]
-        D3a --> D3b[Build Binary]
-        D3b --> D3c[Test Binary]
+        D3a --> D3b[Strip AWT Dependencies]
+        D3b --> D3c[Build Binary]
+        D3c --> D3d[Test Binary]
         D4[Linux arm64 Build] --> D4a[Download JAR]
-        D4a --> D4b[Build Binary]
-        D4b --> D4c[Test Binary]
+        D4a --> D4b[Strip AWT Dependencies]
+        D4b --> D4c[Build Binary]
+        D4c --> D4d[Test Binary]
     end
 
     subgraph "Create Docker Images"
@@ -59,10 +64,10 @@ flowchart TD
     C --> D2
     C --> D3
     C --> D4
-    D1c --> E1
-    D2c --> E1
-    D3c --> E1
-    D4c --> E1
+    D1d --> E1
+    D2d --> E1
+    D3d --> E1
+    D4d --> E1
     E1 --> E2
     E2 --> E3
     E4 --> F
@@ -146,6 +151,14 @@ flowchart TD
     - Allows for flexible version management
     - Uses GitHub Actions conditional expressions for simplified logic
 
+14. **AWT Dependency Removal**
+    - Using a custom Java bytecode manipulation tool (AWT stripper) to remove AWT dependencies
+    - Replaces AWT method calls with exceptions that provide clear error messages
+    - Improves compatibility with environments where AWT is not available
+    - Reduces the size of the native executables
+    - Makes the binaries more suitable for headless environments
+    - Clearly indicates which operations are unsupported due to AWT removal
+
 ## Component Relationships
 
 - The periodic build workflow creates Docker images that the setup action consumes
@@ -153,6 +166,7 @@ flowchart TD
 - Both components share version detection and naming conventions
 - The build workflow uses matrix jobs with direct JAR downloads for efficiency
 - The setup action extracts binaries from Docker images and stores them in the tool cache
+- The AWT stripper is integrated into the build workflow to process the JAR before native image building
 
 ## Error Handling Patterns
 
@@ -191,4 +205,10 @@ flowchart TD
    - Clear logic for determining when to mark a version as "latest"
    - Scheduled runs automatically mark the latest version as "latest"
    - Manual runs can optionally mark a specific version as "latest"
-   - Prevents accidental overwriting of the "latest" tag 
+   - Prevents accidental overwriting of the "latest" tag
+
+9. **AWT Dependency Handling**
+   - AWT method calls are replaced with clear exception messages
+   - Users are informed that certain operations are unsupported in the AWT-stripped build
+   - Non-AWT operations continue to work normally
+   - Docker image labels clearly indicate that the binaries are AWT-stripped 

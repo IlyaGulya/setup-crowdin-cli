@@ -9,6 +9,7 @@
 - **GraalVM**: For creating native executables from Java applications
 - **Crowdin CLI**: The tool we're packaging and distributing
 - **Docker**: For creating and storing binary containers
+- **Java Bytecode Manipulation**: For removing AWT dependencies from the JAR
 
 ### GitHub-Specific Technologies
 - **GitHub Releases API**: For creating releases with assets
@@ -26,12 +27,15 @@
 - **@vercel/ncc**: For compiling Node.js modules into a single file
 - **Jest**: For testing the action
 - **Docker Buildx**: For building and pushing Docker images
+- **ASM**: Java bytecode manipulation library used by the AWT stripper
+- **Gradle**: Build tool for the AWT stripper
 
 ## Development Setup
 - Node.js environment for action development
 - GitHub repository for hosting the action
 - GitHub workflow for testing and releasing
 - Docker for building and testing container images
+- Java development environment for the AWT stripper
 
 ## Technical Constraints
 - Must follow GitHub Actions security best practices
@@ -40,6 +44,7 @@
 - Should be efficient with GitHub Actions minutes
 - Should handle matrix job failures gracefully
 - Should use Docker efficiently for binary storage and distribution
+- Should handle AWT dependencies appropriately for headless environments
 
 ## Dependencies
 - Crowdin CLI (https://github.com/crowdin/crowdin-cli)
@@ -47,6 +52,8 @@
 - GitHub Actions runtime environment
 - Docker for container operations
 - GitHub Container Registry for image storage
+- ASM library for Java bytecode manipulation
+- Gradle for building the AWT stripper
 
 ## Build Process
 1. **Action Development**:
@@ -63,6 +70,7 @@
 3. **Native Executable Building**:
    - Check for new Crowdin CLI versions
    - Download the JAR file from the official repository
+   - **Run the AWT stripper to remove AWT dependencies from the JAR**
    - Use GraalVM to compile the Java application into native executables
    - Build for multiple platforms using a matrix strategy:
      - Linux (amd64)
@@ -80,6 +88,7 @@
    - Create a version marker image for version checking
    - All images are built for linux/amd64 platform for simplicity
    - Tag images with version number and optionally "latest"
+   - **Add labels to indicate that the binaries are AWT-stripped**
    - Push images to GitHub Container Registry
 
 5. **Binary Testing**:
@@ -92,6 +101,7 @@
    - Uses environment variables for credentials instead of modifying config files
    - Test failures prevent the release creation
    - Provides early detection of platform-specific issues
+   - **Note that AWT-related commands will throw UnsupportedOperationException as expected**
 
 ## GraalVM Native Image Optimization
 
@@ -125,12 +135,14 @@ The project uses Docker images in a specific way for binary distribution:
    - Example: `ghcr.io/owner/crowdin-cli-linux-amd64:3.7.1`
    - All images are built for linux/amd64 platform regardless of binary architecture
    - This simplifies the build process while still allowing architecture-specific binary storage
+   - **Images are labeled to indicate they contain AWT-stripped binaries**
 
 2. **Version Marker Image**:
    - A simple image without binaries used for version checking
    - Named with pattern: `ghcr.io/owner/crowdin-cli:{version}`
    - Used by the workflow to check if a version already exists
    - Simplifies version management and prevents redundant builds
+   - **Labeled to indicate it represents an AWT-stripped version**
 
 3. **Latest Tag Control**:
    - Images can optionally be tagged with "latest" in addition to version
@@ -144,4 +156,34 @@ The project uses Docker images in a specific way for binary distribution:
    - No need for GitHub Releases
    - Easy version checking
    - Flexible version management
-   - Efficient binary storage and retrieval 
+   - Efficient binary storage and retrieval
+
+## AWT Stripper Implementation
+
+The project includes a custom Java bytecode manipulation tool to remove AWT dependencies:
+
+1. **Purpose**:
+   - Remove dependencies on Java AWT (Abstract Window Toolkit)
+   - Make the native executables more suitable for headless environments
+   - Reduce the size of the native executables
+   - Improve compatibility with environments where AWT is not available
+
+2. **Implementation**:
+   - Uses ASM library for Java bytecode manipulation
+   - Implemented as a Gradle project for easy building and execution
+   - Processes the JAR file before native image building
+   - Replaces AWT method calls with exceptions that provide clear error messages
+   - Preserves all non-AWT functionality
+
+3. **Integration**:
+   - Integrated into the build workflow as a step before native image building
+   - Takes the original JAR as input and produces a stripped JAR as output
+   - The stripped JAR is then used for native image building
+   - Verification step ensures the stripped JAR was created successfully
+
+4. **Benefits**:
+   - Smaller native executables
+   - Better compatibility with headless environments
+   - Clear error messages for unsupported operations
+   - Preserves all non-AWT functionality
+   - Improves the reliability of the native image building process 

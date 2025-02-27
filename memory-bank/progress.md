@@ -22,6 +22,7 @@
 - **Version marker container added for version checking**
 - **Control over which versions are marked as "latest" added through workflow inputs**
 - **"Mark as latest" logic simplified using GitHub Actions conditional expressions**
+- **AWT stripper integrated to remove AWT dependencies from the JAR before building native images**
 
 ## What's Left to Build
 
@@ -43,6 +44,7 @@
    - [x] **Add version marker container for version checking**
    - [x] **Add control over which versions are marked as "latest"**
    - [x] **Simplify "mark as latest" logic using conditional expressions**
+   - [x] **Integrate AWT stripper to remove AWT dependencies**
 
 2. **Setup Action**
    - [x] Create action metadata file
@@ -64,6 +66,8 @@
    - [ ] **Document the custom reflection feature and its benefits**
    - [ ] **Document the simplified Docker image building process**
    - [ ] **Document the "mark as latest" functionality**
+   - [ ] **Document the AWT stripper integration and its benefits**
+   - [ ] **Document which AWT-related operations are now unsupported**
 
 4. **Testing**
    - [ ] Test workflow with different versions
@@ -77,6 +81,8 @@
    - [ ] **Test the simplified Docker image building process**
    - [ ] **Test the version marker container functionality**
    - [ ] **Test the "mark as latest" functionality with different scenarios**
+   - [ ] **Test the AWT stripper integration with different Crowdin CLI versions**
+   - [ ] **Verify that AWT-stripped binaries work correctly for non-AWT operations**
 
 ## Current Status
 
@@ -85,6 +91,8 @@ Project implementation is complete, fixed, and improved. The action has been suc
 **The workflow has been further optimized by downloading the JAR directly in each build job, eliminating the need for a separate download job and reducing overhead. Additionally, the agent-based native-image configuration has been replaced with a custom reflection feature, providing more control over the build process and resulting in more optimized executables. Testing of the built binaries has been integrated directly into the build job, ensuring that each binary is tested on its native platform immediately after being built. The testing process has been simplified by using environment variables instead of modifying configuration files, making the workflow more maintainable and robust.**
 
 **We've also simplified the Docker image building process by using a single platform (linux/amd64) for all images, regardless of the target architecture of the binary they contain. This simplification makes the workflow more efficient and easier to maintain. A version marker container has been added for version checking, ensuring that the workflow correctly identifies when a new version needs to be built. Control over which versions are marked as "latest" has been added through workflow inputs, allowing for more flexibility in version management. The "mark as latest" logic has been simplified using GitHub Actions conditional expressions, making the code more concise and easier to understand.**
+
+**Most recently, we've integrated an AWT stripper tool that removes Java AWT dependencies from the JAR file before building native images. This improves compatibility with headless environments, reduces the size of the native executables, and makes the binaries more suitable for server environments where AWT is not available or not desired. The AWT stripper replaces AWT method calls with exceptions that provide clear error messages, ensuring that users are informed when they attempt to use unsupported operations. Docker image labels have been updated to indicate that the binaries are AWT-stripped, providing transparency about the modifications made to the original Crowdin CLI.**
 
 The next steps are to test the action and workflow to ensure they work as expected and to update the documentation to reflect the latest improvements.
 
@@ -96,4 +104,7 @@ The next steps are to test the action and workflow to ensure they work as expect
 - Documentation needs to be updated to reflect the latest workflow improvements
 - **The simplified Docker image building process needs to be tested**
 - **The version marker container functionality needs to be verified**
-- **The "mark as latest" functionality needs to be tested with different scenarios** 
+- **The "mark as latest" functionality needs to be tested with different scenarios**
+- **The AWT stripper integration needs to be tested with different Crowdin CLI versions**
+- **We need to verify that AWT-stripped binaries work correctly for non-AWT operations**
+- **We need to document which AWT-related operations are now unsupported** 
