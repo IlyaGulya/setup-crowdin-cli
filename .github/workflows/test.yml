@@ -9,10 +9,18 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - runner: ubuntu-latest
+            platform: linux-amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+          - runner: macos-latest
+            platform: macos-arm64
+          - runner: macos-13
+            platform: macos-x86_64
     
     steps:
       - name: Checkout repository
@@ -40,8 +48,9 @@ jobs:
         uses: ./
         with:
           version: 'latest'
+          platform: ${{ matrix.platform }}
       
       - name: Verify Crowdin CLI installation
         run: |
           crowdin --version
-          echo "Crowdin CLI was successfully installed!" 
+          echo "Crowdin CLI was successfully installed for ${{ matrix.platform }}!" 

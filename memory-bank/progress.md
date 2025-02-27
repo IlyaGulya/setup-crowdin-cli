@@ -23,6 +23,8 @@
 - **Control over which versions are marked as "latest" added through workflow inputs**
 - **"Mark as latest" logic simplified using GitHub Actions conditional expressions**
 - **AWT stripper integrated to remove AWT dependencies from the JAR before building native images**
+- **Test workflow updated to only test on supported platforms (macOS and Linux, both x86_64 and arm64)**
+- **Platform-specific binary selection implemented in the action**
 
 ## What's Left to Build
 
@@ -55,8 +57,17 @@
    - [x] Fix to download custom-built executables
    - [x] Build action with @vercel/ncc
    - [x] **Update to work with simplified Docker image structure**
+   - [x] **Implement platform-specific binary selection via parameter**
 
-3. **Documentation**
+3. **Test Workflow**
+   - [x] Create test workflow file
+   - [x] Test action on different platforms
+   - [x] **Update to test only on supported platforms (macOS and Linux, both x86_64 and arm64)**
+   - [x] **Implement matrix strategy for testing on all supported platforms**
+   - [x] **Add platform parameter to action call for proper binary selection**
+   - [x] **Add platform-specific feedback in verification steps**
+
+4. **Documentation**
    - [x] Create comprehensive README
    - [x] Add usage examples
    - [x] Document configuration options
@@ -68,8 +79,10 @@
    - [ ] **Document the "mark as latest" functionality**
    - [ ] **Document the AWT stripper integration and its benefits**
    - [ ] **Document which AWT-related operations are now unsupported**
+   - [ ] **Document the supported platforms and architectures**
+   - [ ] **Document the platform-specific binary selection feature**
 
-4. **Testing**
+5. **Testing**
    - [ ] Test workflow with different versions
    - [ ] Test action on different platforms
    - [ ] Verify caching works as expected
@@ -83,6 +96,8 @@
    - [ ] **Test the "mark as latest" functionality with different scenarios**
    - [ ] **Test the AWT stripper integration with different Crowdin CLI versions**
    - [ ] **Verify that AWT-stripped binaries work correctly for non-AWT operations**
+   - [ ] **Test the updated test workflow on all supported platforms**
+   - [ ] **Verify that platform-specific binary selection works correctly**
 
 ## Current Status
 
@@ -93,6 +108,8 @@ Project implementation is complete, fixed, and improved. The action has been suc
 **We've also simplified the Docker image building process by using a single platform (linux/amd64) for all images, regardless of the target architecture of the binary they contain. This simplification makes the workflow more efficient and easier to maintain. A version marker container has been added for version checking, ensuring that the workflow correctly identifies when a new version needs to be built. Control over which versions are marked as "latest" has been added through workflow inputs, allowing for more flexibility in version management. The "mark as latest" logic has been simplified using GitHub Actions conditional expressions, making the code more concise and easier to understand.**
 
 **Most recently, we've integrated an AWT stripper tool that removes Java AWT dependencies from the JAR file before building native images. This improves compatibility with headless environments, reduces the size of the native executables, and makes the binaries more suitable for server environments where AWT is not available or not desired. The AWT stripper replaces AWT method calls with exceptions that provide clear error messages, ensuring that users are informed when they attempt to use unsupported operations. Docker image labels have been updated to indicate that the binaries are AWT-stripped, providing transparency about the modifications made to the original Crowdin CLI.**
+
+**We've also updated the test workflow to only test on supported platforms (macOS and Linux, both x86_64 and arm64), removing Windows support as it's not part of our target platforms. The test workflow now uses a matrix strategy to test on all supported platforms, passing the platform parameter to the action for proper binary selection. This ensures that the action correctly selects and uses the appropriate binary for each platform. The verification steps now include platform-specific feedback, making it easier to identify which platform a test is running on.**
 
 The next steps are to test the action and workflow to ensure they work as expected and to update the documentation to reflect the latest improvements.
 
@@ -107,4 +124,6 @@ The next steps are to test the action and workflow to ensure they work as expect
 - **The "mark as latest" functionality needs to be tested with different scenarios**
 - **The AWT stripper integration needs to be tested with different Crowdin CLI versions**
 - **We need to verify that AWT-stripped binaries work correctly for non-AWT operations**
-- **We need to document which AWT-related operations are now unsupported** 
+- **We need to document which AWT-related operations are now unsupported**
+- **The updated test workflow needs to be tested on all supported platforms**
+- **We need to verify that platform-specific binary selection works correctly** 

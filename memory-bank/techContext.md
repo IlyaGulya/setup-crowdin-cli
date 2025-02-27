@@ -39,12 +39,20 @@
 
 ## Technical Constraints
 - Must follow GitHub Actions security best practices
-- Should handle different operating systems (Linux, macOS, Windows)
+- Should handle different operating systems (Linux, macOS)
+- Should handle different architectures (x86_64/amd64, arm64)
 - Must properly utilize GitHub's tool cache
 - Should be efficient with GitHub Actions minutes
 - Should handle matrix job failures gracefully
 - Should use Docker efficiently for binary storage and distribution
 - Should handle AWT dependencies appropriately for headless environments
+
+## Supported Platforms
+- **Linux (amd64/x86_64)**: Standard Linux on Intel/AMD 64-bit architecture
+- **Linux (arm64)**: Linux on ARM 64-bit architecture (e.g., AWS Graviton)
+- **macOS (x86_64)**: macOS on Intel 64-bit architecture
+- **macOS (arm64)**: macOS on Apple Silicon (M1/M2/M3) architecture
+- **Windows is not supported** due to compatibility issues with the native executables
 
 ## Dependencies
 - Crowdin CLI (https://github.com/crowdin/crowdin-cli)
@@ -103,6 +111,17 @@
    - Provides early detection of platform-specific issues
    - **Note that AWT-related commands will throw UnsupportedOperationException as expected**
 
+6. **Action Testing**:
+   - Test the action on all supported platforms using a matrix strategy
+   - Test only on platforms that are actually supported:
+     - Linux (amd64/x86_64)
+     - Linux (arm64)
+     - macOS (x86_64)
+     - macOS (arm64)
+   - Pass platform parameter to the action for proper binary selection
+   - Verify that the action correctly installs and makes the CLI available
+   - Provide platform-specific feedback in verification steps
+
 ## GraalVM Native Image Optimization
 
 The project uses a custom approach for GraalVM native image building:
@@ -157,6 +176,38 @@ The project uses Docker images in a specific way for binary distribution:
    - Easy version checking
    - Flexible version management
    - Efficient binary storage and retrieval
+
+## Platform-Specific Binary Selection
+
+The action supports platform-specific binary selection:
+
+1. **Implementation**:
+   - Action accepts a `platform` parameter to explicitly specify which binary to use
+   - If not specified, the action automatically detects the runner's platform
+   - Uses a mapping of platform identifiers to Docker image tags
+   - Ensures the correct binary is downloaded and used for each platform
+
+2. **Supported Platforms**:
+   - `linux-amd64`: Linux on Intel/AMD 64-bit architecture
+   - `linux-arm64`: Linux on ARM 64-bit architecture
+   - `macos-x86_64`: macOS on Intel 64-bit architecture
+   - `macos-arm64`: macOS on Apple Silicon architecture
+
+3. **Auto-Detection Logic**:
+   - Uses the runner's OS and architecture information to determine the platform
+   - Maps the detected platform to the corresponding Docker image tag
+   - Falls back to a default if the detected platform is not supported
+
+4. **Error Handling**:
+   - Provides clear error messages if the specified platform is not supported
+   - Falls back to auto-detection if the specified platform is invalid
+   - Ensures the action works reliably across different environments
+
+5. **Benefits**:
+   - Improves reliability across different environments
+   - Allows for explicit control when needed
+   - Simplifies usage in most cases through auto-detection
+   - Ensures the correct binary is used for each platform
 
 ## AWT Stripper Implementation
 

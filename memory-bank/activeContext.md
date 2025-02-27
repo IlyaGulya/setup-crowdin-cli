@@ -21,6 +21,13 @@ We have implemented, fixed, and improved the two main components:
    - Makes it available for use in workflows
    - Successfully compiled into a single file using @vercel/ncc
    - **Updated to work with the simplified Docker image structure**
+   - **Now supports platform-specific binary selection via a parameter**
+
+3. **Test Workflow**
+   - **Updated to test only on supported platforms (macOS and Linux, both x86_64 and arm64)**
+   - **Uses a matrix strategy to test on all supported platforms**
+   - **Passes the platform parameter to the action for proper binary selection**
+   - **Provides platform-specific feedback in verification steps**
 
 ## Recent Changes
 
@@ -48,6 +55,8 @@ We have implemented, fixed, and improved the two main components:
 - **Simplified the "mark as latest" logic using GitHub Actions conditional expressions**
 - **Integrated AWT stripper to remove AWT dependencies from the JAR before building native images**
 - **Updated Docker image labels to indicate AWT-stripped versions**
+- **Updated test workflow to only test on supported platforms (macOS and Linux, both x86_64 and arm64)**
+- **Implemented platform-specific binary selection in the action**
 
 ## Next Steps
 
@@ -64,6 +73,8 @@ We have implemented, fixed, and improved the two main components:
    - **Test the "mark as latest" functionality with different scenarios**
    - **Test the AWT stripper integration to ensure it correctly removes AWT dependencies**
    - **Verify that the AWT-stripped binaries work correctly for non-AWT operations**
+   - **Test the updated test workflow on all supported platforms**
+   - **Verify that platform-specific binary selection works correctly**
 
 2. Make adjustments based on testing results
    - Fix any issues found during testing
@@ -91,6 +102,8 @@ We have implemented, fixed, and improved the two main components:
    - **How to test the AWT stripper integration**
    - **How to verify that AWT-stripped binaries work correctly for non-AWT operations**
    - **How to handle potential failures in the AWT stripping process**
+   - **How to test the updated test workflow on all supported platforms**
+   - **How to verify that platform-specific binary selection works correctly**
 
 2. **Error Handling Improvements**
    - How to handle network issues
@@ -101,6 +114,7 @@ We have implemented, fixed, and improved the two main components:
    - **How to handle version marker container failures**
    - **How to handle AWT stripper failures**
    - **How to provide clear error messages for AWT-related operations that are now unsupported**
+   - **How to handle platform-specific binary selection failures**
 
 3. **Performance Optimization**
    - How to optimize the download and caching process
@@ -110,6 +124,7 @@ We have implemented, fixed, and improved the two main components:
    - **How to fine-tune the custom reflection configuration for optimal results**
    - **How to optimize the Docker image building process**
    - **How to optimize the AWT stripping process**
+   - **How to optimize platform-specific binary selection**
 
 4. **Documentation Improvements**
    - How to make the documentation more user-friendly
@@ -121,4 +136,6 @@ We have implemented, fixed, and improved the two main components:
    - **How to document the simplified Docker image building process**
    - **How to document the "mark as latest" functionality**
    - **How to document the AWT stripper integration and its benefits**
-   - **How to document which AWT-related operations are now unsupported** 
+   - **How to document which AWT-related operations are now unsupported**
+   - **How to document the supported platforms and architectures**
+   - **How to document the platform-specific binary selection feature** 

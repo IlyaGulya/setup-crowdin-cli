@@ -22,6 +22,14 @@ The project consists of two main components:
    - Stores it in the GitHub runner's tool cache
    - Makes it available for use in workflows
    - **Extracts binaries from Docker images**
+   - **Supports platform-specific binary selection via parameter**
+
+3. **Test Workflow**
+   - Tests the setup action on different platforms
+   - **Uses a matrix strategy to test on all supported platforms**
+   - **Tests only on supported platforms (macOS and Linux, both x86_64 and arm64)**
+   - **Passes platform parameter to the action for proper binary selection**
+   - **Provides platform-specific feedback in verification steps**
 
 ```mermaid
 flowchart TD
@@ -81,6 +89,19 @@ flowchart TD
         K --> L[Store in Tool Cache]
         I --> M[Add to PATH]
         L --> M
+        G --> G1[Get Platform Parameter]
+        G1 --> G2{Platform Specified?}
+        G2 -->|Yes| G3[Use Specified Platform]
+        G2 -->|No| G4[Auto-detect Platform]
+        G3 --> J
+        G4 --> J
+    end
+    
+    subgraph "Test Workflow"
+        T1[Matrix Strategy] --> T2[Run on Multiple Platforms]
+        T2 --> T3[Setup Action with Platform Parameter]
+        T3 --> T4[Verify Installation]
+        T4 --> T5[Platform-specific Feedback]
     end
 ```
 
@@ -159,6 +180,25 @@ flowchart TD
     - Makes the binaries more suitable for headless environments
     - Clearly indicates which operations are unsupported due to AWT removal
 
+15. **Platform-Specific Binary Selection**
+    - Action supports explicit platform selection via parameter
+    - Falls back to auto-detection if no platform is specified
+    - Ensures the correct binary is used for each platform
+    - Improves reliability across different environments
+    - Supports all platforms built by the periodic build workflow:
+      - Linux (amd64/x86_64)
+      - Linux (arm64)
+      - macOS (x86_64)
+      - macOS (arm64)
+
+16. **Matrix-Based Testing Strategy**
+    - Test workflow uses a matrix strategy to test on all supported platforms
+    - Tests only on platforms that are actually supported (macOS and Linux, both x86_64 and arm64)
+    - Passes platform parameter to the action for proper binary selection
+    - Provides platform-specific feedback in verification steps
+    - Ensures the action works correctly on all supported platforms
+    - Helps identify platform-specific issues early
+
 ## Component Relationships
 
 - The periodic build workflow creates Docker images that the setup action consumes
@@ -167,6 +207,8 @@ flowchart TD
 - The build workflow uses matrix jobs with direct JAR downloads for efficiency
 - The setup action extracts binaries from Docker images and stores them in the tool cache
 - The AWT stripper is integrated into the build workflow to process the JAR before native image building
+- The test workflow verifies that the setup action works correctly on all supported platforms
+- The setup action's platform-specific binary selection feature ensures the correct binary is used for each platform
 
 ## Error Handling Patterns
 
@@ -177,6 +219,8 @@ flowchart TD
 2. **Platform Detection**
    - Automatically detect the runner's platform
    - Download the appropriate executable for the platform
+   - **Support explicit platform selection via parameter**
+   - **Fall back to auto-detection if no platform is specified**
 
 3. **Cache Validation**
    - Verify cached executables before using them
@@ -211,4 +255,11 @@ flowchart TD
    - AWT method calls are replaced with clear exception messages
    - Users are informed that certain operations are unsupported in the AWT-stripped build
    - Non-AWT operations continue to work normally
-   - Docker image labels clearly indicate that the binaries are AWT-stripped 
+   - Docker image labels clearly indicate that the binaries are AWT-stripped
+
+10. **Platform-Specific Binary Selection Handling**
+    - Action handles explicit platform selection via parameter
+    - Falls back to auto-detection if no platform is specified
+    - Provides clear error messages if the specified platform is not supported
+    - Ensures the correct binary is used for each platform
+    - Improves reliability across different environments 
