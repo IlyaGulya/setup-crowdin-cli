@@ -11,6 +11,7 @@ The project consists of two main components:
    - Uses a matrix strategy for building on different platforms
    - Supports tag-based triggers for manual version releases
    - **Optimized to download JAR directly in build jobs**
+   - **Tests built binaries directly in each build job**
 
 2. **Setup Action**
    - Downloads the requested version of Crowdin CLI
@@ -28,19 +29,27 @@ flowchart TD
 
     subgraph "Build Native Executables"
         D1[Linux Build] --> D1a[Download JAR]
+        D1a --> D1b[Build Binary]
+        D1b --> D1c[Test Binary]
         D2[macOS x64 Build] --> D2a[Download JAR]
+        D2a --> D2b[Build Binary]
+        D2b --> D2c[Test Binary]
         D3[macOS arm64 Build] --> D3a[Download JAR]
+        D3a --> D3b[Build Binary]
+        D3b --> D3c[Test Binary]
         D4[Windows Build] --> D4a[Download JAR]
+        D4a --> D4b[Build Binary]
+        D4b --> D4c[Test Binary]
     end
 
     C --> D1
     C --> D2
     C --> D3
     C --> D4
-    D1 --> E
-    D2 --> E
-    D3 --> E
-    D4 --> E
+    D1c --> E
+    D2c --> E
+    D3c --> E
+    D4c --> E
 
     subgraph "Setup Action"
         G[Get Requested Version] --> H{In Cache?}
@@ -94,6 +103,13 @@ flowchart TD
    - Provides more control over which classes are included in the native image
    - Results in more optimized and smaller native executables
 
+10. **Integrated Testing in Build Jobs**
+    - Each binary is tested immediately after being built on its native platform
+    - Tests run common Crowdin CLI commands to verify functionality
+    - Uses environment variables for credentials instead of modifying config files
+    - Ensures that only working binaries are released
+    - Provides early detection of platform-specific issues
+
 ## Component Relationships
 
 - The periodic build workflow creates the assets that the setup action consumes
@@ -121,4 +137,10 @@ flowchart TD
 
 5. **Matrix Job Failure Handling**
    - Individual matrix job failures don't fail the entire workflow
-   - Allows for partial success and reporting 
+   - Allows for partial success and reporting
+
+6. **Test Failure Handling**
+   - Test failures in any build job prevent the release creation
+   - Each binary is tested on its native platform for better compatibility testing
+   - Environment variables are used for credentials to simplify testing
+   - Common Crowdin CLI commands are tested to verify core functionality 

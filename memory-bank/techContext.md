@@ -62,9 +62,21 @@
      - macOS (x64)
      - macOS (arm64)
      - Windows (amd64)
+   - Test each binary on its native platform immediately after building
    - Create checksums for verification
    - Upload artifacts between jobs
    - Package and release through GitHub Releases 
+
+4. **Binary Testing**:
+   - Each binary is tested on its native platform immediately after building
+   - Tests run common Crowdin CLI commands to verify functionality:
+     - `download sources` - Downloads source files from Crowdin
+     - `download translations` - Downloads translated files from Crowdin
+     - `upload sources` - Uploads source files to Crowdin
+     - `upload translations` - Uploads translated files to Crowdin
+   - Uses environment variables for credentials instead of modifying config files
+   - Test failures prevent the release creation
+   - Provides early detection of platform-specific issues
 
 ## GraalVM Native Image Optimization
 

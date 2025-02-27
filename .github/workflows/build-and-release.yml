@@ -70,6 +70,9 @@ jobs:
           - runner: macos-13
             artifact: crowdin-cli-macos-x86_64
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
       - name: Download and Extract Crowdin CLI
         # language=bash
         run: |
@@ -117,6 +120,26 @@ jobs:
             com.crowdin.cli.Cli \
             ${{ matrix.artifact }}
 
+      - name: Test Crowdin CLI
+        run: |
+          chmod +x ./${{ matrix.artifact }}
+          cd testproject
+          
+          echo "Testing download sources..."
+          ../${{ matrix.artifact }} download sources
+          
+          echo "Testing download translations..."
+          ../${{ matrix.artifact }} download translations
+          
+          echo "Testing upload sources..."
+          ../${{ matrix.artifact }} upload sources
+          
+          echo "Testing upload translations..."
+          ../${{ matrix.artifact }} upload translations
+        env:
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ vars.CROWDIN_PROJECT_ID }}
+
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
@@ -124,7 +147,7 @@ jobs:
           path: ${{ matrix.artifact }}
 
   create-release:
-    needs: [ check-for-updates, build-native ]
+    needs: [check-for-updates, build-native]
     if: ${{ needs.check-for-updates.outputs.new_version == 'true' }}
     permissions:
       contents: write

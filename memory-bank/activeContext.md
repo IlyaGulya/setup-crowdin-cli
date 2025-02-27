@@ -36,6 +36,8 @@ We have implemented, fixed, and improved the two main components:
 - **Added concurrency control to prevent workflow conflicts**
 - **Optimized the workflow by downloading JAR directly in build jobs**
 - **Replaced agent-based native-image configuration with custom reflection feature**
+- **Added testing of built binaries directly in the build job**
+- **Simplified testing by using environment variables instead of modifying config files**
 
 ## Next Steps
 
@@ -46,6 +48,7 @@ We have implemented, fixed, and improved the two main components:
    - Test the new matrix-based build strategy
    - **Test the optimized JAR download process**
    - **Test the custom reflection feature for native image building**
+   - **Verify that the integrated testing of binaries works correctly**
 
 2. Make adjustments based on testing results
    - Fix any issues found during testing
@@ -65,6 +68,8 @@ We have implemented, fixed, and improved the two main components:
    - How to verify that caching works as expected
    - How to test the matrix-based build strategy
    - **How to verify the optimized JAR download process**
+   - **How to ensure the integrated testing of binaries is reliable across platforms**
+   - **How to handle potential test failures in different environments**
 
 2. **Error Handling Improvements**
    - How to handle network issues
