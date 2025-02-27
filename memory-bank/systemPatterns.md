@@ -88,6 +88,12 @@ flowchart TD
    - Using GitHub Actions concurrency to prevent workflow conflicts
    - Ensures only one workflow runs for a given reference at a time
 
+9. **Custom Reflection Configuration for GraalVM**
+   - Using a custom Java class (`CrowdinReflectionFeature`) to provide explicit reflection configuration
+   - Eliminates the need for agent-based configuration generation at build time
+   - Provides more control over which classes are included in the native image
+   - Results in more optimized and smaller native executables
+
 ## Component Relationships
 
 - The periodic build workflow creates the assets that the setup action consumes

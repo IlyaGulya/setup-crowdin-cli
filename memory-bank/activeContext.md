@@ -35,6 +35,7 @@ We have implemented, fixed, and improved the two main components:
 - **Improved artifact handling between jobs**
 - **Added concurrency control to prevent workflow conflicts**
 - **Optimized the workflow by downloading JAR directly in build jobs**
+- **Replaced agent-based native-image configuration with custom reflection feature**
 
 ## Next Steps
 
@@ -44,6 +45,7 @@ We have implemented, fixed, and improved the two main components:
    - Verify that caching works as expected
    - Test the new matrix-based build strategy
    - **Test the optimized JAR download process**
+   - **Test the custom reflection feature for native image building**
 
 2. Make adjustments based on testing results
    - Fix any issues found during testing
@@ -75,10 +77,12 @@ We have implemented, fixed, and improved the two main components:
    - How to minimize the action execution time
    - How to parallelize builds efficiently
    - **How to further optimize the workflow if needed**
+   - **How to fine-tune the custom reflection configuration for optimal results**
 
 4. **Documentation Improvements**
    - How to make the documentation more user-friendly
    - What additional examples to provide
    - How to document troubleshooting steps
    - How to document the new workflow improvements
-   - **How to document the optimized build process** 
+   - **How to document the optimized build process**
+   - **How to document the custom reflection feature and its benefits** 

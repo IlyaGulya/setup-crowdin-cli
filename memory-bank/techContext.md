@@ -65,3 +65,25 @@
    - Create checksums for verification
    - Upload artifacts between jobs
    - Package and release through GitHub Releases 
+
+## GraalVM Native Image Optimization
+
+The project uses a custom approach for GraalVM native image building:
+
+1. **Custom Reflection Configuration**:
+   - Using a Java class (`CrowdinReflectionFeature.java`) that implements GraalVM's `Feature` interface
+   - Provides explicit reflection configuration for classes that need it at runtime
+   - Eliminates the need for agent-based configuration generation
+
+2. **Build Process Improvements**:
+   - Compile the reflection feature with the Crowdin CLI JAR in the classpath
+   - Package the compiled class into a feature JAR
+   - Use size optimization flag (`-Os`) for smaller binary size
+   - Include necessary resources with pattern matching
+   - Specify the main class explicitly for better control
+
+3. **Benefits**:
+   - More deterministic builds
+   - Smaller executable size
+   - Better control over what gets included in the native image
+   - Faster build process by eliminating the agent configuration step 

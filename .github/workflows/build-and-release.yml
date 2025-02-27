@@ -93,12 +93,28 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compile and package reflection feature
+        # language=bash
+        run: |
+          # Create output directory
+          mkdir -p out
+          
+          # Compile the reflection feature
+          javac -cp crowdin-cli.jar -d out CrowdinReflectionFeature.java
+          
+          # Package the feature into a JAR
+          jar cf feature.jar -C out .
+          
+          echo "Successfully compiled and packaged reflection feature"
+
       - name: Build native image
         # language=bash
         run: |
-          native-image -Os -jar crowdin-cli.jar \
-            --no-fallback \
-            -H:+ReportExceptionStackTraces \
+          native-image -Os -cp feature.jar:crowdin-cli.jar \
+            -H:Features=CrowdinReflectionFeature \
+            -H:IncludeResources="META-INF/services/.*|crowdin.*|messages/.*" \
+            --no-fallback --enable-url-protocols=http,https \
+            com.crowdin.cli.Cli \
             ${{ matrix.artifact }}
 
       - name: Upload binary artifact
