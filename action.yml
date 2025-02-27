@@ -1,13 +1,13 @@
 name: 'Setup Crowdin CLI'
-description: 'Downloads and sets up Crowdin CLI in the GitHub runner tool cache'
+description: 'Set up Crowdin CLI in your GitHub Actions workflow'
 author: 'Ilya Gulya'
 branding:
-  icon: 'globe'
+  icon: 'download'
   color: 'blue'
 
 inputs:
   version:
-    description: 'Version of Crowdin CLI to use (e.g., 3.7.1). Defaults to latest.'
+    description: 'Version of Crowdin CLI to use (e.g. 3.16.0)'
     required: false
     default: 'latest'
 

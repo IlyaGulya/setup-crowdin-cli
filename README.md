@@ -6,30 +6,16 @@ This GitHub Action sets up [Crowdin CLI](https://github.com/crowdin/crowdin-cli)
 2. Adding it to the GitHub Actions tool cache
 3. Adding it to the PATH
 
-It also includes a workflow that periodically checks for new Crowdin CLI versions, builds native executables using GraalVM, and creates GitHub releases with these executables.
-
-## How It Works
-
-This project consists of two main components:
-
-1. **A periodic workflow** that:
-   - Checks for new versions of the Crowdin CLI
-   - Builds native executables for different platforms using GraalVM
-   - Creates GitHub releases with these executables
-
-2. **A GitHub Action** that:
-   - Downloads the appropriate native executable for your platform
-   - Caches it using GitHub's tool cache
-   - Makes it available in your workflow
+The native executables are built using GraalVM, which means they start faster and don't require Java to be installed.
 
 ## Usage
 
 ```yaml
 steps:
   - name: Setup Crowdin CLI
-    uses: your-username/setup-crowdin-cli@v1
+    uses: IlyaGulya/setup-crowdin-cli@v1
     with:
-      version: '3.7.1'  # Optional, defaults to latest
+      version: '3.16.0'  # Optional, defaults to latest
 
   - name: Use Crowdin CLI
     run: crowdin upload sources
@@ -37,33 +23,51 @@ steps:
 
 ## Inputs
 
-| Name    | Description                                                | Required | Default |
-|---------|------------------------------------------------------------|----------|---------|
-| version | Version of Crowdin CLI to use (e.g., 3.7.1)                | No       | latest  |
+| Name    | Description                                | Required | Default |
+|---------|--------------------------------------------|----------|---------|
+| version | Version of Crowdin CLI to use (e.g. 3.16.0) | No       | latest  |
 
-## Features
+## Supported Platforms
 
-- **Cross-Platform Support**: Works on Linux, macOS (x64 and arm64), and Windows
-- **Caching**: Uses GitHub's tool cache to avoid redundant downloads
-- **Native Executables**: Uses GraalVM-built native executables for better performance and no Java dependency
-- **Version Management**: Allows specifying which version to use
+- Linux (x64, arm64)
+- macOS (Intel, Apple Silicon)
 
-## Benefits
+Windows is not currently supported by the native binaries. If you need Windows support, please use the official Crowdin CLI action instead.
 
-- **Simplicity**: No need to manually install Crowdin CLI
-- **Performance**: Uses native executables instead of Java JAR files
-- **Consistency**: Ensures the same version is used across different workflows
-- **No Java Dependency**: Eliminates the need for Java runtime on the GitHub runner
+## How It Works
 
-## Technical Details
+This action uses GitHub Container Registry to store pre-built native executables for Crowdin CLI. When you run the action, it:
 
-The native executables are built using GraalVM's native-image tool, which compiles the Java application ahead-of-time into a standalone executable. This provides several advantages:
+1. Determines your platform and architecture
+2. Downloads the appropriate binary directly from the architecture-specific container
+3. Caches it using GitHub's tool cache
+4. Adds it to the PATH so you can use it in subsequent steps
 
-- Faster startup time
-- Lower memory usage
-- No need for a Java runtime environment
-- Simplified deployment
+## Architecture-Specific Containers
+
+The binaries are stored in architecture-specific containers with the following naming pattern:
+- `ghcr.io/[owner]/crowdin-cli-linux-amd64`
+- `ghcr.io/[owner]/crowdin-cli-linux-arm64`
+- `ghcr.io/[owner]/crowdin-cli-macos-x86_64`
+- `ghcr.io/[owner]/crowdin-cli-macos-arm64`
+
+This approach allows the action to download only the binary needed for your specific platform, making the process faster and more efficient. If an architecture-specific container is not available, the action will fall back to the generic container.
+
+## No Docker Dependency
+
+Unlike many container-based actions, this action doesn't require Docker to be installed on the runner. It directly interacts with the container registry API to download the binaries, making it faster and more lightweight.
+
+## Building Manually
+
+You can trigger a manual build for a specific version using the GitHub Actions workflow:
+
+1. Go to the Actions tab in this repository
+2. Select the "Build and Push Crowdin CLI Binaries" workflow
+3. Click "Run workflow"
+4. Enter the version you want to build (e.g., "3.16.0")
+5. Check "Force rebuild" if you want to rebuild an existing version
+6. Click "Run workflow"
 
 ## License
 
-MIT
+This project is distributed under the MIT license.

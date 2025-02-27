@@ -18,6 +18,10 @@
 - **Agent-based native-image configuration replaced with custom reflection feature**
 - **Testing of built binaries integrated directly into the build job**
 - **Testing simplified by using environment variables instead of modifying config files**
+- **Docker image building simplified by using a single platform (linux/amd64) for all images**
+- **Version marker container added for version checking**
+- **Control over which versions are marked as "latest" added through workflow inputs**
+- **"Mark as latest" logic simplified using GitHub Actions conditional expressions**
 
 ## What's Left to Build
 
@@ -35,6 +39,10 @@
    - [x] **Implement custom reflection feature for native image building**
    - [x] **Integrate testing of built binaries directly into the build job**
    - [x] **Simplify testing by using environment variables**
+   - [x] **Simplify Docker image building by using a single platform**
+   - [x] **Add version marker container for version checking**
+   - [x] **Add control over which versions are marked as "latest"**
+   - [x] **Simplify "mark as latest" logic using conditional expressions**
 
 2. **Setup Action**
    - [x] Create action metadata file
@@ -44,6 +52,7 @@
    - [x] Make CLI available in PATH
    - [x] Fix to download custom-built executables
    - [x] Build action with @vercel/ncc
+   - [x] **Update to work with simplified Docker image structure**
 
 3. **Documentation**
    - [x] Create comprehensive README
@@ -53,6 +62,8 @@
    - [ ] Document the new workflow improvements
    - [ ] **Document the optimized build process**
    - [ ] **Document the custom reflection feature and its benefits**
+   - [ ] **Document the simplified Docker image building process**
+   - [ ] **Document the "mark as latest" functionality**
 
 4. **Testing**
    - [ ] Test workflow with different versions
@@ -63,14 +74,26 @@
    - [ ] **Test the custom reflection feature with different Crowdin CLI versions**
    - [x] **Implement integrated testing of binaries in the build workflow**
    - [x] **Optimize testing by using environment variables**
+   - [ ] **Test the simplified Docker image building process**
+   - [ ] **Test the version marker container functionality**
+   - [ ] **Test the "mark as latest" functionality with different scenarios**
 
 ## Current Status
 
-Project implementation is complete, fixed, and improved. The action has been successfully compiled into a single file using @vercel/ncc. The build workflow has been enhanced with a matrix-based build strategy, tag-based triggers, improved artifact handling, and concurrency control. **The workflow has been further optimized by downloading the JAR directly in each build job, eliminating the need for a separate download job and reducing overhead. Additionally, the agent-based native-image configuration has been replaced with a custom reflection feature, providing more control over the build process and resulting in more optimized executables. Testing of the built binaries has been integrated directly into the build job, ensuring that each binary is tested on its native platform immediately after being built. The testing process has been simplified by using environment variables instead of modifying configuration files, making the workflow more maintainable and robust.** The next steps are to test the action and workflow to ensure they work as expected and to update the documentation to reflect the latest improvements.
+Project implementation is complete, fixed, and improved. The action has been successfully compiled into a single file using @vercel/ncc. The build workflow has been enhanced with a matrix-based build strategy, tag-based triggers, improved artifact handling, and concurrency control. 
+
+**The workflow has been further optimized by downloading the JAR directly in each build job, eliminating the need for a separate download job and reducing overhead. Additionally, the agent-based native-image configuration has been replaced with a custom reflection feature, providing more control over the build process and resulting in more optimized executables. Testing of the built binaries has been integrated directly into the build job, ensuring that each binary is tested on its native platform immediately after being built. The testing process has been simplified by using environment variables instead of modifying configuration files, making the workflow more maintainable and robust.**
+
+**We've also simplified the Docker image building process by using a single platform (linux/amd64) for all images, regardless of the target architecture of the binary they contain. This simplification makes the workflow more efficient and easier to maintain. A version marker container has been added for version checking, ensuring that the workflow correctly identifies when a new version needs to be built. Control over which versions are marked as "latest" has been added through workflow inputs, allowing for more flexibility in version management. The "mark as latest" logic has been simplified using GitHub Actions conditional expressions, making the code more concise and easier to understand.**
+
+The next steps are to test the action and workflow to ensure they work as expected and to update the documentation to reflect the latest improvements.
 
 ## Known Issues
 
 - The action has not been tested yet
 - The workflow has not been tested yet
 - The action might need adjustments based on testing results
-- Documentation needs to be updated to reflect the latest workflow improvements 
+- Documentation needs to be updated to reflect the latest workflow improvements
+- **The simplified Docker image building process needs to be tested**
+- **The version marker container functionality needs to be verified**
+- **The "mark as latest" functionality needs to be tested with different scenarios** 

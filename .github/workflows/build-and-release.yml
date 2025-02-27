@@ -1,14 +1,25 @@
-name: Build and Release Crowdin CLI
+name: Build and Push Crowdin CLI Binaries
 
 on:
   schedule:
     # Run every day at 00:00 UTC
     - cron: '0 0 * * *'
   workflow_dispatch:
-  # Allow manual triggering
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+    inputs:
+      version:
+        description: 'Crowdin CLI version to build (e.g. 3.16.0)'
+        required: false
+        type: string
+      force:
+        description: 'Force rebuild even if version already exists'
+        required: false
+        type: boolean
+        default: false
+      mark_as_latest:
+        description: 'Mark this version as latest'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,6 +27,8 @@ concurrency:
 
 env:
   JAVA_VERSION: '23'
+  REGISTRY: ghcr.io
+  BASE_IMAGE_NAME: ${{ github.repository_owner }}/crowdin-cli
 
 jobs:
   check-for-updates:
@@ -23,6 +36,7 @@ jobs:
     outputs:
       new_version: ${{ steps.check-version.outputs.new_version }}
       version: ${{ steps.check-version.outputs.version }}
+      mark_as_latest: ${{ github.event_name == 'schedule' || inputs.mark_as_latest }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,25 +45,39 @@ jobs:
         id: check-version
         # language=bash
         run: |
+          # For manual workflow runs with specified version
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.version }}" ]]; then
+            SPECIFIED_VERSION="${{ inputs.version }}"
+            echo "Using manually specified version: $SPECIFIED_VERSION"
+            
+            # Check if we already have this version in the container registry
+            if [[ "${{ inputs.force }}" != "true" ]]; then
+              echo "Checking if version $SPECIFIED_VERSION already exists in container registry..."
+              if docker pull ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:$SPECIFIED_VERSION 2>/dev/null; then
+                echo "Version $SPECIFIED_VERSION already exists in container registry. Skipping."
+                echo "To rebuild it, run the workflow again with force=true"
+                echo "new_version=false" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+            
+            echo "Will build version: $SPECIFIED_VERSION"
+            echo "new_version=true" >> $GITHUB_OUTPUT
+            echo "version=$SPECIFIED_VERSION" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
           # Get the latest release from Crowdin CLI repository
           LATEST_VERSION=$(curl -s https://api.github.com/repos/crowdin/crowdin-cli/releases/latest | jq -r '.tag_name' | sed 's/^v//')
           echo "Latest Crowdin CLI version: $LATEST_VERSION"
           
-          # For tag-based triggers, use the tag version
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
-            TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
-            echo "Using tag version: $TAG_VERSION"
-            echo "new_version=true" >> $GITHUB_OUTPUT
-            echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # Check if we already have a release for this version
-          if curl -s -f -I "https://github.com/${{ github.repository }}/releases/tag/v$LATEST_VERSION" > /dev/null; then
-            echo "Release for version $LATEST_VERSION already exists. Skipping."
+          # Check if we already have this version in the container registry
+          echo "Checking if version $LATEST_VERSION already exists in container registry..."
+          if [[ "${{ inputs.force }}" != "true" ]] && docker pull ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:$LATEST_VERSION 2>/dev/null; then
+            echo "Version $LATEST_VERSION already exists in container registry. Skipping."
             echo "new_version=false" >> $GITHUB_OUTPUT
           else
-            echo "New version $LATEST_VERSION detected. Will create a release."
+            echo "New version $LATEST_VERSION detected. Will build it."
             echo "new_version=true" >> $GITHUB_OUTPUT
             echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
           fi
@@ -77,9 +105,12 @@ jobs:
         # language=bash
         run: |
           VERSION=${{ needs.check-for-updates.outputs.version }}
-          # Download the zip file
+          # Ensure VERSION has no 'v' prefix for consistency
+          VERSION="${VERSION#v}"
+          
+          # Download the zip file (adding 'v' prefix for URL)
           echo "Downloading Crowdin CLI zip for version ${VERSION}..."
-          curl -L -o crowdin-cli.zip "https://github.com/crowdin/crowdin-cli/releases/download/${VERSION}/crowdin-cli.zip"
+          curl -L -o crowdin-cli.zip "https://github.com/crowdin/crowdin-cli/releases/download/v${VERSION}/crowdin-cli.zip"
           unzip -j crowdin-cli.zip
                     
           # Verify the JAR file was moved successfully
@@ -140,47 +171,121 @@ jobs:
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
           CROWDIN_PROJECT_ID: ${{ vars.CROWDIN_PROJECT_ID }}
 
+      - name: Generate SHA256 checksum
+        run: |
+          sha256sum ${{ matrix.artifact }} > ${{ matrix.artifact }}.sha256
+
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            ${{ matrix.artifact }}.sha256
 
-  create-release:
+  push-to-registry:
     needs: [check-for-updates, build-native]
     if: ${{ needs.check-for-updates.outputs.new_version == 'true' }}
     permissions:
-      contents: write
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: release-assets
-          merge-multiple: true
+          path: binaries
+          merge-multiple: false
 
-      - name: Generate sha256 checksums
-        # language=bash
-        run: |
-          cd release-assets
-          for file in *; do
-            sha256sum $file > $file.sha256
-          done
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
         with:
-          tag_name: v${{ needs.check-for-updates.outputs.version }}
-          name: Crowdin CLI v${{ needs.check-for-updates.outputs.version }}
-          body: |
-            Native executables for Crowdin CLI v${{ needs.check-for-updates.outputs.version }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Push architecture-specific containers
+      - name: Push architecture-specific containers
+        run: |
+          VERSION="${{ needs.check-for-updates.outputs.version }}"
+          MARK_AS_LATEST="${{ needs.check-for-updates.outputs.mark_as_latest }}"
+          
+          # Create and push a container for each architecture
+          for ARCH_DIR in binaries/*; do
+            ARCH_NAME=$(basename "$ARCH_DIR")
+            ARCH_TAG=${ARCH_NAME#crowdin-cli-}
             
-            These are built using GraalVM native-image for better performance and no Java dependency.
+            echo "Creating container for $ARCH_NAME (tag: $ARCH_TAG)"
             
-            Original Crowdin CLI: https://github.com/crowdin/crowdin-cli/releases/tag/v${{ needs.check-for-updates.outputs.version }}
-          files: release-assets/*
-          draft: false
-          prerelease: false
-          make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+            # Create a Dockerfile for this architecture
+            cat > Dockerfile << EOF
+          FROM scratch
+          LABEL org.opencontainers.image.description="Crowdin CLI v${VERSION} native binary for ${ARCH_TAG}"
+          LABEL org.opencontainers.image.source="https://github.com/${{ github.repository }}"
+          LABEL org.opencontainers.image.version="${VERSION}"
+          
+          # Add the binary to the image
+          COPY binaries/${ARCH_NAME}/${ARCH_NAME} /
+          
+          # This is just a storage container, not meant to be run directly.
+          CMD ["echo", "This is a storage container for Crowdin CLI binary. Not meant to be run directly."]
+          EOF
+            
+            # Build and push the architecture-specific image
+            if [[ "$MARK_AS_LATEST" == "true" ]]; then
+              echo "Tagging as both ${VERSION} and latest"
+              docker buildx build \
+                --push \
+                --tag ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}-${ARCH_TAG}:${VERSION} \
+                --tag ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}-${ARCH_TAG}:latest \
+                .
+            else
+              echo "Tagging as ${VERSION} only"
+              docker buildx build \
+                --push \
+                --tag ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}-${ARCH_TAG}:${VERSION} \
+                .
+            fi
+          done
+          
+      # Push a dummy container for version checking
+      - name: Push version marker container
+        run: |
+          VERSION="${{ needs.check-for-updates.outputs.version }}"
+          MARK_AS_LATEST="${{ needs.check-for-updates.outputs.mark_as_latest }}"
+          
+          # Create a simple Dockerfile for version marker
+          cat > Dockerfile << EOF
+          FROM scratch
+          LABEL org.opencontainers.image.description="Crowdin CLI v${VERSION} version marker"
+          LABEL org.opencontainers.image.source="https://github.com/${{ github.repository }}"
+          LABEL org.opencontainers.image.version="${VERSION}"
+          
+          # Create an empty file to make the image valid
+          COPY README.md /version-marker
+          
+          # This is just a marker container for version checking
+          CMD ["echo", "This is a version marker container for Crowdin CLI v${VERSION}"]
+          EOF
+          
+          # Build and push the version marker image
+          if [[ "$MARK_AS_LATEST" == "true" ]]; then
+            echo "Tagging version marker as both ${VERSION} and latest"
+            docker buildx build \
+              --push \
+              --tag ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:${VERSION} \
+              --tag ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:latest \
+              .
+          else
+            echo "Tagging version marker as ${VERSION} only"
+            docker buildx build \
+              --push \
+              --tag ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:${VERSION} \
+              .
+          fi

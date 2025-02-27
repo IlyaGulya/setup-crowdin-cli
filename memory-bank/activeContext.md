@@ -11,12 +11,15 @@ We have implemented, fixed, and improved the two main components:
    - Now uses a matrix strategy for building on different platforms
    - Supports tag-based triggers for manual version releases
    - **Optimized to download JAR directly in build jobs**
+   - **Simplified Docker image building by using a single platform (linux/amd64)**
+   - **Added control over which versions are marked as "latest"**
 
 2. **Setup Action**
    - A GitHub Action that downloads the requested version of our custom-built Crowdin CLI
    - Stores it in the GitHub runner's tool cache
    - Makes it available for use in workflows
    - Successfully compiled into a single file using @vercel/ncc
+   - **Updated to work with the simplified Docker image structure**
 
 ## Recent Changes
 
@@ -38,6 +41,10 @@ We have implemented, fixed, and improved the two main components:
 - **Replaced agent-based native-image configuration with custom reflection feature**
 - **Added testing of built binaries directly in the build job**
 - **Simplified testing by using environment variables instead of modifying config files**
+- **Simplified Docker image building by using a single platform (linux/amd64) for all images**
+- **Added a version marker container for version checking**
+- **Added control over which versions are marked as "latest" through workflow inputs**
+- **Simplified the "mark as latest" logic using GitHub Actions conditional expressions**
 
 ## Next Steps
 
@@ -49,6 +56,9 @@ We have implemented, fixed, and improved the two main components:
    - **Test the optimized JAR download process**
    - **Test the custom reflection feature for native image building**
    - **Verify that the integrated testing of binaries works correctly**
+   - **Test the simplified Docker image building process**
+   - **Verify that the version marker container works correctly for version checking**
+   - **Test the "mark as latest" functionality with different scenarios**
 
 2. Make adjustments based on testing results
    - Fix any issues found during testing
@@ -70,12 +80,17 @@ We have implemented, fixed, and improved the two main components:
    - **How to verify the optimized JAR download process**
    - **How to ensure the integrated testing of binaries is reliable across platforms**
    - **How to handle potential test failures in different environments**
+   - **How to test the simplified Docker image building process**
+   - **How to verify that the version marker container works correctly**
+   - **How to test the "mark as latest" functionality**
 
 2. **Error Handling Improvements**
    - How to handle network issues
    - How to handle version mismatches
    - How to provide meaningful error messages
    - How to handle failures in specific matrix jobs
+   - **How to handle Docker image building failures**
+   - **How to handle version marker container failures**
 
 3. **Performance Optimization**
    - How to optimize the download and caching process
@@ -83,6 +98,7 @@ We have implemented, fixed, and improved the two main components:
    - How to parallelize builds efficiently
    - **How to further optimize the workflow if needed**
    - **How to fine-tune the custom reflection configuration for optimal results**
+   - **How to optimize the Docker image building process**
 
 4. **Documentation Improvements**
    - How to make the documentation more user-friendly
@@ -90,4 +106,6 @@ We have implemented, fixed, and improved the two main components:
    - How to document troubleshooting steps
    - How to document the new workflow improvements
    - **How to document the optimized build process**
-   - **How to document the custom reflection feature and its benefits** 
+   - **How to document the custom reflection feature and its benefits**
+   - **How to document the simplified Docker image building process**
+   - **How to document the "mark as latest" functionality** 

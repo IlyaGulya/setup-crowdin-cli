@@ -8,6 +8,7 @@
 - **Node.js**: Runtime for the action
 - **GraalVM**: For creating native executables from Java applications
 - **Crowdin CLI**: The tool we're packaging and distributing
+- **Docker**: For creating and storing binary containers
 
 ### GitHub-Specific Technologies
 - **GitHub Releases API**: For creating releases with assets
@@ -16,6 +17,7 @@
 - **GitHub Actions Matrix**: For defining build configurations
 - **GitHub Actions Artifacts**: For passing files between jobs
 - **GitHub Actions Concurrency**: For preventing workflow conflicts
+- **GitHub Container Registry**: For storing Docker images with binaries
 
 ### Development Tools
 - **@actions/core**: Core functions for GitHub Actions
@@ -23,11 +25,13 @@
 - **@actions/github**: For interacting with GitHub API
 - **@vercel/ncc**: For compiling Node.js modules into a single file
 - **Jest**: For testing the action
+- **Docker Buildx**: For building and pushing Docker images
 
 ## Development Setup
 - Node.js environment for action development
 - GitHub repository for hosting the action
 - GitHub workflow for testing and releasing
+- Docker for building and testing container images
 
 ## Technical Constraints
 - Must follow GitHub Actions security best practices
@@ -35,11 +39,14 @@
 - Must properly utilize GitHub's tool cache
 - Should be efficient with GitHub Actions minutes
 - Should handle matrix job failures gracefully
+- Should use Docker efficiently for binary storage and distribution
 
 ## Dependencies
 - Crowdin CLI (https://github.com/crowdin/crowdin-cli)
 - GraalVM for native image compilation
 - GitHub Actions runtime environment
+- Docker for container operations
+- GitHub Container Registry for image storage
 
 ## Build Process
 1. **Action Development**:
@@ -59,15 +66,23 @@
    - Use GraalVM to compile the Java application into native executables
    - Build for multiple platforms using a matrix strategy:
      - Linux (amd64)
+     - Linux (arm64)
      - macOS (x64)
      - macOS (arm64)
-     - Windows (amd64)
    - Test each binary on its native platform immediately after building
    - Create checksums for verification
    - Upload artifacts between jobs
-   - Package and release through GitHub Releases 
 
-4. **Binary Testing**:
+4. **Docker Image Building**:
+   - Create Docker images to store and distribute the binaries
+   - Use a simple `FROM scratch` base image for minimal size
+   - Store each binary in its own architecture-specific image
+   - Create a version marker image for version checking
+   - All images are built for linux/amd64 platform for simplicity
+   - Tag images with version number and optionally "latest"
+   - Push images to GitHub Container Registry
+
+5. **Binary Testing**:
    - Each binary is tested on its native platform immediately after building
    - Tests run common Crowdin CLI commands to verify functionality:
      - `download sources` - Downloads source files from Crowdin
@@ -98,4 +113,35 @@ The project uses a custom approach for GraalVM native image building:
    - More deterministic builds
    - Smaller executable size
    - Better control over what gets included in the native image
-   - Faster build process by eliminating the agent configuration step 
+   - Faster build process by eliminating the agent configuration step
+
+## Docker Image Strategy
+
+The project uses Docker images in a specific way for binary distribution:
+
+1. **Architecture-Specific Images**:
+   - Each binary gets its own Docker image with a specific architecture tag
+   - Images are named with pattern: `ghcr.io/owner/crowdin-cli-{arch-tag}:{version}`
+   - Example: `ghcr.io/owner/crowdin-cli-linux-amd64:3.7.1`
+   - All images are built for linux/amd64 platform regardless of binary architecture
+   - This simplifies the build process while still allowing architecture-specific binary storage
+
+2. **Version Marker Image**:
+   - A simple image without binaries used for version checking
+   - Named with pattern: `ghcr.io/owner/crowdin-cli:{version}`
+   - Used by the workflow to check if a version already exists
+   - Simplifies version management and prevents redundant builds
+
+3. **Latest Tag Control**:
+   - Images can optionally be tagged with "latest" in addition to version
+   - Controlled through workflow input parameter or automatically for scheduled runs
+   - Allows for flexible version management
+   - Scheduled runs automatically mark the latest version as "latest"
+   - Manual runs can optionally mark a specific version as "latest"
+
+4. **Benefits**:
+   - Simplified distribution mechanism
+   - No need for GitHub Releases
+   - Easy version checking
+   - Flexible version management
+   - Efficient binary storage and retrieval 
