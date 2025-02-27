@@ -4,104 +4,78 @@
 
 The project consists of two main components:
 
-1. **Periodic Build Workflow**
+1. **GitHub Workflow for Building and Releasing**
    - Checks for new Crowdin CLI versions
    - Builds native executables using GraalVM
    - Creates GitHub releases with these executables
    - Uses a matrix strategy for building on different platforms
-   - Supports tag-based triggers for manual version releases
-   - **Optimized to download JAR directly in build jobs**
-   - **Tests built binaries directly in each build job**
-   - **Creates Docker images to store and distribute binaries**
-   - **Uses a version marker container for version checking**
-   - **Controls which versions are marked as "latest"**
-   - **Uses AWT stripper to remove AWT dependencies from the JAR before building native images**
+   - Supports manual version releases through workflow dispatch
+   - Creates an orphan branch for each version
+   - Creates a `.crowdin-version` file with the version number
+   - Uses GitHub Script with Octokit for version checking
+   - Uses `softprops/action-gh-release` for creating GitHub releases
 
 2. **Setup Action**
    - Downloads the requested version of Crowdin CLI
    - Stores it in the GitHub runner's tool cache
    - Makes it available for use in workflows
-   - **Extracts binaries from Docker images**
-   - **Supports platform-specific binary selection via parameter**
-
-3. **Test Workflow**
-   - Tests the setup action on different platforms
-   - **Uses a matrix strategy to test on all supported platforms**
-   - **Tests only on supported platforms (macOS and Linux, both x86_64 and arm64)**
-   - **Passes platform parameter to the action for proper binary selection**
-   - **Provides platform-specific feedback in verification steps**
+   - Uses Octokit for GitHub API interactions
+   - Supports platform-specific binary selection
 
 ```mermaid
 flowchart TD
-    subgraph "Periodic Build Workflow"
+    subgraph "GitHub Workflow"
         A[Check for Updates] --> B{New Version?}
         B -->|Yes| C[Build Native Executables]
-        C --> E[Create Docker Images]
-        E --> F[Push to Container Registry]
+        C --> D[Create GitHub Release]
         B -->|No| Z[End]
     end
 
     subgraph "Build Native Executables"
-        D1[Linux Build] --> D1a[Download JAR]
-        D1a --> D1b[Strip AWT Dependencies]
-        D1b --> D1c[Build Binary]
-        D1c --> D1d[Test Binary]
-        D2[macOS x64 Build] --> D2a[Download JAR]
-        D2a --> D2b[Strip AWT Dependencies]
-        D2b --> D2c[Build Binary]
-        D2c --> D2d[Test Binary]
-        D3[macOS arm64 Build] --> D3a[Download JAR]
-        D3a --> D3b[Strip AWT Dependencies]
-        D3b --> D3c[Build Binary]
-        D3c --> D3d[Test Binary]
-        D4[Linux arm64 Build] --> D4a[Download JAR]
-        D4a --> D4b[Strip AWT Dependencies]
-        D4b --> D4c[Build Binary]
-        D4c --> D4d[Test Binary]
+        C1[Linux Build] --> C1a[Download JAR]
+        C1a --> C1b[Strip AWT Dependencies]
+        C1b --> C1c[Build Binary]
+        C1c --> C1d[Test Binary]
+        C2[macOS x64 Build] --> C2a[Download JAR]
+        C2a --> C2b[Strip AWT Dependencies]
+        C2b --> C2c[Build Binary]
+        C2c --> C2d[Test Binary]
+        C3[macOS arm64 Build] --> C3a[Download JAR]
+        C3a --> C3b[Strip AWT Dependencies]
+        C3b --> C3c[Build Binary]
+        C3c --> C3d[Test Binary]
+        C4[Linux arm64 Build] --> C4a[Download JAR]
+        C4a --> C4b[Strip AWT Dependencies]
+        C4b --> C4c[Build Binary]
+        C4c --> C4d[Test Binary]
     end
 
-    subgraph "Create Docker Images"
-        E1[Create Architecture-Specific Images]
-        E2[Create Version Marker Image]
-        E3{Mark as Latest?}
-        E3 -->|Yes| E4[Tag with Latest]
-        E3 -->|No| E5[Tag with Version Only]
+    subgraph "Create GitHub Release"
+        D1[Create Orphan Branch]
+        D2[Create Version File]
+        D3[Commit and Tag]
+        D4[Push Tag]
+        D5[Download Artifacts]
+        D6[Create GitHub Release]
+        D1 --> D2 --> D3 --> D4 --> D5 --> D6
     end
 
-    C --> D1
-    C --> D2
-    C --> D3
-    C --> D4
-    D1d --> E1
-    D2d --> E1
-    D3d --> E1
-    D4d --> E1
-    E1 --> E2
-    E2 --> E3
-    E4 --> F
-    E5 --> F
+    C --> C1
+    C --> C2
+    C --> C3
+    C --> C4
+    C1d --> D
+    C2d --> D
+    C3d --> D
+    C4d --> D
 
     subgraph "Setup Action"
-        G[Get Requested Version] --> H{In Cache?}
-        H -->|Yes| I[Use Cached Version]
-        H -->|No| J[Download from Container Registry]
-        J --> K[Extract Binary]
-        K --> L[Store in Tool Cache]
-        I --> M[Add to PATH]
-        L --> M
-        G --> G1[Get Platform Parameter]
-        G1 --> G2{Platform Specified?}
-        G2 -->|Yes| G3[Use Specified Platform]
-        G2 -->|No| G4[Auto-detect Platform]
-        G3 --> J
-        G4 --> J
-    end
-    
-    subgraph "Test Workflow"
-        T1[Matrix Strategy] --> T2[Run on Multiple Platforms]
-        T2 --> T3[Setup Action with Platform Parameter]
-        T3 --> T4[Verify Installation]
-        T4 --> T5[Platform-specific Feedback]
+        E[Get Requested Version] --> F{In Cache?}
+        F -->|Yes| G[Use Cached Version]
+        F -->|No| H[Download from GitHub Releases]
+        H --> I[Store in Tool Cache]
+        G --> J[Add to PATH]
+        I --> J
     end
 ```
 
@@ -111,11 +85,10 @@ flowchart TD
    - Using GraalVM to create native executables for better performance and simpler usage
    - Eliminates the need for Java runtime on the GitHub runner
 
-2. **Docker Images as Distribution Mechanism**
-   - Using Docker images to store and distribute the executables
+2. **GitHub Releases for Distribution**
+   - Using GitHub releases to store and distribute the executables
    - Provides versioning and easy access to specific versions
    - Simplifies version checking and management
-   - Eliminates the need for GitHub Releases
 
 3. **Tool Cache for Efficiency**
    - Using GitHub's tool cache to avoid redundant downloads
@@ -125,90 +98,44 @@ flowchart TD
    - Using scheduled workflows for simplicity
    - Avoids the need for external services or complex event triggers
 
-5. **Single File Distribution for Action**
-   - Using @vercel/ncc to compile the action code into a single file
-   - Simplifies distribution and eliminates the need for node_modules
-
-6. **Matrix Strategy for Builds**
+5. **Matrix Strategy for Builds**
    - Using GitHub Actions matrix strategy to define build configurations
    - Improves maintainability and scalability
    - Makes it easier to add new platforms or architectures
 
-7. **Optimized JAR Download Process**
-   - Each build job downloads the JAR directly instead of using a separate job
-   - Reduces workflow complexity and execution time
-   - Eliminates the overhead of artifact uploads/downloads between jobs
+6. **Octokit for GitHub API Interactions**
+   - Using Octokit for GitHub API interactions
+   - Provides better type safety and error handling
+   - Simplifies API calls and response handling
 
-8. **Concurrency Control**
-   - Using GitHub Actions concurrency to prevent workflow conflicts
-   - Ensures only one workflow runs for a given reference at a time
+7. **GitHub Script for Workflow Operations**
+   - Using GitHub Script for workflow operations
+   - Simplifies the workflow by allowing JavaScript code directly in the workflow
+   - Provides better error handling and logging
 
-9. **Custom Reflection Configuration for GraalVM**
-   - Using a custom Java class (`CrowdinReflectionFeature`) to provide explicit reflection configuration
-   - Eliminates the need for agent-based configuration generation at build time
-   - Provides more control over which classes are included in the native image
-   - Results in more optimized and smaller native executables
+8. **Repository Simplification**
+   - Focusing solely on the user's repository
+   - Hardcoding repository information for simplicity and clarity
+   - Streamlining the workflow to reduce complexity
 
-10. **Integrated Testing in Build Jobs**
-    - Each binary is tested immediately after being built on its native platform
-    - Tests run common Crowdin CLI commands to verify functionality
-    - Uses environment variables for credentials instead of modifying config files
-    - Ensures that only working binaries are released
-    - Provides early detection of platform-specific issues
+9. **JSDoc Comments for Documentation**
+   - Adding JSDoc comments to improve code documentation
+   - Provides better type hinting for development
+   - Enhances code readability and maintainability
 
-11. **Simplified Docker Image Building**
-    - All Docker images are built for linux/amd64 platform regardless of binary architecture
-    - Simplifies the build process while still allowing architecture-specific binary storage
-    - Reduces complexity and improves reliability
-
-12. **Version Marker Container**
-    - A simple container without binaries used for version checking
-    - Simplifies version management and prevents redundant builds
-    - Provides a consistent way to check if a version already exists
-
-13. **Latest Tag Control**
-    - Images can optionally be tagged with "latest" in addition to version
-    - Controlled through workflow input parameter or automatically for scheduled runs
-    - Allows for flexible version management
-    - Uses GitHub Actions conditional expressions for simplified logic
-
-14. **AWT Dependency Removal**
-    - Using a custom Java bytecode manipulation tool (AWT stripper) to remove AWT dependencies
-    - Replaces AWT method calls with exceptions that provide clear error messages
-    - Improves compatibility with environments where AWT is not available
-    - Reduces the size of the native executables
-    - Makes the binaries more suitable for headless environments
-    - Clearly indicates which operations are unsupported due to AWT removal
-
-15. **Platform-Specific Binary Selection**
-    - Action supports explicit platform selection via parameter
-    - Falls back to auto-detection if no platform is specified
-    - Ensures the correct binary is used for each platform
-    - Improves reliability across different environments
-    - Supports all platforms built by the periodic build workflow:
-      - Linux (amd64/x86_64)
-      - Linux (arm64)
-      - macOS (x86_64)
-      - macOS (arm64)
-
-16. **Matrix-Based Testing Strategy**
-    - Test workflow uses a matrix strategy to test on all supported platforms
-    - Tests only on platforms that are actually supported (macOS and Linux, both x86_64 and arm64)
-    - Passes platform parameter to the action for proper binary selection
-    - Provides platform-specific feedback in verification steps
-    - Ensures the action works correctly on all supported platforms
-    - Helps identify platform-specific issues early
+10. **Orphan Branch for Version History**
+    - Creating an orphan branch for each version
+    - Maintains a clean history for each version
+    - Simplifies version management
 
 ## Component Relationships
 
-- The periodic build workflow creates Docker images that the setup action consumes
-- The setup action depends on the images pushed to the container registry
+- The GitHub workflow builds native executables and creates GitHub releases
+- The setup action downloads executables from GitHub releases and makes them available in workflows
 - Both components share version detection and naming conventions
-- The build workflow uses matrix jobs with direct JAR downloads for efficiency
-- The setup action extracts binaries from Docker images and stores them in the tool cache
-- The AWT stripper is integrated into the build workflow to process the JAR before native image building
-- The test workflow verifies that the setup action works correctly on all supported platforms
-- The setup action's platform-specific binary selection feature ensures the correct binary is used for each platform
+- The workflow uses matrix jobs for building on different platforms
+- The setup action uses Octokit for GitHub API interactions
+- The workflow uses GitHub Script for version checking and `softprops/action-gh-release` for creating releases
 
 ## Error Handling Patterns
 
@@ -219,47 +146,18 @@ flowchart TD
 2. **Platform Detection**
    - Automatically detect the runner's platform
    - Download the appropriate executable for the platform
-   - **Support explicit platform selection via parameter**
-   - **Fall back to auto-detection if no platform is specified**
+   - Support explicit platform selection via parameter
+   - Fall back to auto-detection if no platform is specified
 
 3. **Cache Validation**
    - Verify cached executables before using them
    - Re-download if validation fails
 
-4. **Repository Fallback**
-   - If our repository doesn't have a release, check the official Crowdin CLI repository
-   - Use the version number from the official repository but still download our custom build
+4. **API Error Handling**
+   - Use try/catch blocks for API calls
+   - Provide clear error messages for API failures
+   - Log detailed error information for debugging
 
 5. **Matrix Job Failure Handling**
    - Individual matrix job failures don't fail the entire workflow
-   - Allows for partial success and reporting
-
-6. **Test Failure Handling**
-   - Test failures in any build job prevent the release creation
-   - Each binary is tested on its native platform for better compatibility testing
-   - Environment variables are used for credentials to simplify testing
-   - Common Crowdin CLI commands are tested to verify core functionality
-
-7. **Docker Image Building Failure Handling**
-   - Failures in Docker image building are reported clearly
-   - Version marker container ensures consistent version checking
-   - Architecture-specific containers are built independently for better fault isolation
-
-8. **Latest Tag Control**
-   - Clear logic for determining when to mark a version as "latest"
-   - Scheduled runs automatically mark the latest version as "latest"
-   - Manual runs can optionally mark a specific version as "latest"
-   - Prevents accidental overwriting of the "latest" tag
-
-9. **AWT Dependency Handling**
-   - AWT method calls are replaced with clear exception messages
-   - Users are informed that certain operations are unsupported in the AWT-stripped build
-   - Non-AWT operations continue to work normally
-   - Docker image labels clearly indicate that the binaries are AWT-stripped
-
-10. **Platform-Specific Binary Selection Handling**
-    - Action handles explicit platform selection via parameter
-    - Falls back to auto-detection if no platform is specified
-    - Provides clear error messages if the specified platform is not supported
-    - Ensures the correct binary is used for each platform
-    - Improves reliability across different environments 
+   - Allows for partial success and reporting 

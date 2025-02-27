@@ -2,140 +2,74 @@
 
 ## Current Work Focus
 
-We have implemented, fixed, and improved the two main components:
+We are currently focused on simplifying and improving the GitHub Actions workflow for the Crowdin CLI setup action:
 
-1. **Periodic Build Workflow**
-   - A GitHub workflow that checks for new Crowdin CLI versions
-   - Builds native executables using GraalVM
-   - Creates GitHub releases with these executables
-   - Now uses a matrix strategy for building on different platforms
-   - Supports tag-based triggers for manual version releases
-   - **Optimized to download JAR directly in build jobs**
-   - **Simplified Docker image building by using a single platform (linux/amd64)**
-   - **Added control over which versions are marked as "latest"**
-   - **Integrated AWT stripper to remove AWT dependencies from the JAR before building native images**
+1. **GitHub Workflow Simplification**
+   - Rewriting the workflow to publish releases directly to GitHub instead of using Docker container registry
+   - Simplifying the codebase to focus solely on the user's repository (ilyagulya/setup-crowdin-cli)
+   - Implementing a more straightforward version checking mechanism
+   - Using GitHub Script with Octokit for GitHub API interactions
+   - Using `softprops/action-gh-release` for creating GitHub releases
 
-2. **Setup Action**
-   - A GitHub Action that downloads the requested version of our custom-built Crowdin CLI
-   - Stores it in the GitHub runner's tool cache
-   - Makes it available for use in workflows
-   - Successfully compiled into a single file using @vercel/ncc
-   - **Updated to work with the simplified Docker image structure**
-   - **Now supports platform-specific binary selection via a parameter**
+2. **Code Improvements**
+   - Adding JSDoc comments to improve code documentation and type hinting
+   - Replacing direct fetch calls with Octokit API methods
+   - Hardcoding repository information for simplicity and clarity
+   - Enhancing error handling throughout the codebase
 
-3. **Test Workflow**
-   - **Updated to test only on supported platforms (macOS and Linux, both x86_64 and arm64)**
-   - **Uses a matrix strategy to test on all supported platforms**
-   - **Passes the platform parameter to the action for proper binary selection**
-   - **Provides platform-specific feedback in verification steps**
+3. **Workflow Process Refinement**
+   - Creating an orphan branch for each version
+   - Creating a `.crowdin-version` file with the version number
+   - Committing and tagging changes
+   - Downloading artifacts and publishing releases to GitHub
 
 ## Recent Changes
 
-- Created the project repository
-- Set up the basic directory structure
-- Documented the project requirements and architecture
-- Implemented the periodic build workflow
-- Implemented the setup action
-- Created a test workflow
-- Updated documentation
-- Fixed the action to download our custom-built executables instead of official ones
-- Updated dependencies and GitHub Actions versions
-- Built the action using @vercel/ncc to create a single distributable file
-- **Improved the build workflow with matrix strategy for better maintainability**
-- **Added tag-based triggers for manual version releases**
-- **Improved artifact handling between jobs**
-- **Added concurrency control to prevent workflow conflicts**
-- **Optimized the workflow by downloading JAR directly in build jobs**
-- **Replaced agent-based native-image configuration with custom reflection feature**
-- **Added testing of built binaries directly in the build job**
-- **Simplified testing by using environment variables instead of modifying config files**
-- **Simplified Docker image building by using a single platform (linux/amd64) for all images**
-- **Added a version marker container for version checking**
-- **Added control over which versions are marked as "latest" through workflow inputs**
-- **Simplified the "mark as latest" logic using GitHub Actions conditional expressions**
-- **Integrated AWT stripper to remove AWT dependencies from the JAR before building native images**
-- **Updated Docker image labels to indicate AWT-stripped versions**
-- **Updated test workflow to only test on supported platforms (macOS and Linux, both x86_64 and arm64)**
-- **Implemented platform-specific binary selection in the action**
+- Rewrote the `build-and-release.yml` workflow to publish releases directly to GitHub
+- Simplified the codebase to focus solely on the user's repository
+- Added environment variables for repository owner and name
+- Updated the version checking logic to use hardcoded repository values
+- Replaced fetch calls with Octokit API methods in `src/index.js`
+- Enhanced error handling for API calls
+- Updated the `check-for-updates` job to use GitHub Script with Octokit
+- Reverted from using Octokit for release creation to using `softprops/action-gh-release`
+- Added JSDoc comments to `src/index.js` to improve code documentation and type hinting
 
 ## Next Steps
 
-1. Test both components
-   - Test the workflow with different Crowdin CLI versions
-   - Test the action on different platforms
-   - Verify that caching works as expected
-   - Test the new matrix-based build strategy
-   - **Test the optimized JAR download process**
-   - **Test the custom reflection feature for native image building**
-   - **Verify that the integrated testing of binaries works correctly**
-   - **Test the simplified Docker image building process**
-   - **Verify that the version marker container works correctly for version checking**
-   - **Test the "mark as latest" functionality with different scenarios**
-   - **Test the AWT stripper integration to ensure it correctly removes AWT dependencies**
-   - **Verify that the AWT-stripped binaries work correctly for non-AWT operations**
-   - **Test the updated test workflow on all supported platforms**
-   - **Verify that platform-specific binary selection works correctly**
+1. Test the updated workflow
+   - Test the GitHub release creation process
+   - Verify that version checking works correctly
+   - Test the binary download and setup process
 
-2. Make adjustments based on testing results
-   - Fix any issues found during testing
-   - Improve error handling
-   - Optimize performance
+2. Update documentation
+   - Document the new workflow process
+   - Update usage examples
+   - Clarify the release process
 
-3. Publish the action
-   - Create a release
-   - Publish to the GitHub Marketplace
-   - Announce the availability
+3. Consider additional improvements
+   - Further enhance error handling
+   - Add more comprehensive logging
+   - Consider additional platform support if needed
 
 ## Active Decisions and Considerations
 
-1. **Testing Strategy**
-   - How to effectively test the action and workflow
-   - Which versions of Crowdin CLI to test with
-   - How to verify that caching works as expected
-   - How to test the matrix-based build strategy
-   - **How to verify the optimized JAR download process**
-   - **How to ensure the integrated testing of binaries is reliable across platforms**
-   - **How to handle potential test failures in different environments**
-   - **How to test the simplified Docker image building process**
-   - **How to verify that the version marker container works correctly**
-   - **How to test the "mark as latest" functionality**
-   - **How to test the AWT stripper integration**
-   - **How to verify that AWT-stripped binaries work correctly for non-AWT operations**
-   - **How to handle potential failures in the AWT stripping process**
-   - **How to test the updated test workflow on all supported platforms**
-   - **How to verify that platform-specific binary selection works correctly**
+1. **GitHub Release Strategy**
+   - Using GitHub releases instead of Docker container registry for simplicity
+   - Creating an orphan branch for each version to maintain a clean history
+   - Using tags for versioning and release identification
 
-2. **Error Handling Improvements**
-   - How to handle network issues
-   - How to handle version mismatches
-   - How to provide meaningful error messages
-   - How to handle failures in specific matrix jobs
-   - **How to handle Docker image building failures**
-   - **How to handle version marker container failures**
-   - **How to handle AWT stripper failures**
-   - **How to provide clear error messages for AWT-related operations that are now unsupported**
-   - **How to handle platform-specific binary selection failures**
+2. **API Interaction Approach**
+   - Using Octokit for GitHub API interactions for better type safety and error handling
+   - Using GitHub Script for workflow operations to simplify the workflow
+   - Using `softprops/action-gh-release` for creating releases as it's simpler and more reliable
 
-3. **Performance Optimization**
-   - How to optimize the download and caching process
-   - How to minimize the action execution time
-   - How to parallelize builds efficiently
-   - **How to further optimize the workflow if needed**
-   - **How to fine-tune the custom reflection configuration for optimal results**
-   - **How to optimize the Docker image building process**
-   - **How to optimize the AWT stripping process**
-   - **How to optimize platform-specific binary selection**
+3. **Code Documentation**
+   - Adding JSDoc comments to improve code documentation and type hinting
+   - Ensuring clear error messages and logging
+   - Maintaining code clarity and readability
 
-4. **Documentation Improvements**
-   - How to make the documentation more user-friendly
-   - What additional examples to provide
-   - How to document troubleshooting steps
-   - How to document the new workflow improvements
-   - **How to document the optimized build process**
-   - **How to document the custom reflection feature and its benefits**
-   - **How to document the simplified Docker image building process**
-   - **How to document the "mark as latest" functionality**
-   - **How to document the AWT stripper integration and its benefits**
-   - **How to document which AWT-related operations are now unsupported**
-   - **How to document the supported platforms and architectures**
-   - **How to document the platform-specific binary selection feature** 
+4. **Repository Simplification**
+   - Focusing solely on the user's repository instead of supporting multiple repositories
+   - Hardcoding repository information for simplicity and clarity
+   - Streamlining the workflow to reduce complexity 
