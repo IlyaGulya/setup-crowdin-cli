@@ -48,8 +48,8 @@ jobs:
         uses: ./
         with:
           version: 'latest'
-          platform: ${{ matrix.platform }}
-      
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify Crowdin CLI installation
         run: |
           crowdin --version

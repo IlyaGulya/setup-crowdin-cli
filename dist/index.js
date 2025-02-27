@@ -34392,6 +34392,7 @@ async function run() {
   try {
     // Get inputs
     const version = core.getInput('version') || 'latest';
+    const githubToken = core.getInput('github_token', { required: true });
     
     // Determine platform and architecture
     const platform = os.platform();
@@ -34441,8 +34442,7 @@ async function run() {
       let releaseVersion = version;
       
       // Get authenticated GitHub client
-      /** @type {ReturnType<typeof github.getOctokit>} */
-      const octokit = github.getOctokit(process.env.GITHUB_TOKEN || '');
+      const octokit = github.getOctokit(githubToken);
       
       // If version is 'latest', get the latest release tag
       if (version === 'latest') {
