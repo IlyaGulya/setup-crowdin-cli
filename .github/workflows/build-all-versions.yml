@@ -1,0 +1,200 @@
+name: Build All Crowdin CLI Versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_version:
+        description: 'Starting version (default: 4.0.0)'
+        required: false
+        type: string
+        default: '4.0.0'
+      force:
+        description: 'Force rebuild even if versions already exist'
+        required: false
+        type: boolean
+        default: false
+      mark_latest:
+        description: 'Mark the latest processed version as latest'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REPO_OWNER: ilyagulya
+  REPO_NAME: setup-crowdin-cli
+
+jobs:
+  fetch-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.get-versions.outputs.versions }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get all Crowdin CLI versions
+        id: get-versions
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=js
+          script: |
+            const startVersion = context.payload.inputs?.start_version || '4.0.0';
+            console.log(`Fetching Crowdin CLI versions starting from ${startVersion}...`);
+            
+            // Parse the start version for comparison
+            const [startMajor, startMinor, startPatch] = startVersion.split('.').map(Number);
+            
+            // Function to check if a version is below our minimum
+            const isBelowMinimum = (version) => {
+              const match = version.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
+              if (!match) return false;
+              
+              const [, major, minor, patch] = match.map(Number);
+              
+              if (major < startMajor) return true;
+              if (major > startMajor) return false;
+              if (minor < startMinor) return true;
+              if (minor > startMinor) return false;
+              return patch < startPatch;
+            };
+            
+            // Get releases from Crowdin CLI repository, stopping when we find versions below our minimum
+            let eligibleVersions = [];
+            let page = 1;
+            let shouldContinue = true;
+            let foundBelowMinimum = false;
+            
+            while (shouldContinue) {
+              console.log(`Fetching page ${page} of releases...`);
+              const { data: releases } = await github.rest.repos.listReleases({
+                owner: 'crowdin',
+                repo: 'crowdin-cli',
+                per_page: 100,
+                page: page
+              });
+              
+              if (releases.length === 0) {
+                shouldContinue = false;
+              } else {
+                // Process this page of releases
+                for (const release of releases) {
+                  const version = release.tag_name;
+                  
+                  if (isBelowMinimum(version)) {
+                    // We've found a version below our minimum, mark that we can stop after this page
+                    foundBelowMinimum = true;
+                  } else {
+                    // This is a version we're interested in
+                    const semverMatch = version.match(/^v?(\d+\.\d+\.\d+)$/);
+                    if (semverMatch) {
+                      eligibleVersions.push(semverMatch[1]);
+                    }
+                  }
+                }
+                
+                // If we found a version below our minimum, we can stop fetching more pages
+                if (foundBelowMinimum) {
+                  shouldContinue = false;
+                  console.log('Found versions below minimum threshold, stopping pagination.');
+                } else {
+                  page++;
+                }
+              }
+            }
+            
+            console.log(`Found ${eligibleVersions.length} eligible versions.`);
+            
+            // Sort versions in ascending order
+            const sortedVersions = eligibleVersions.sort((a, b) => {
+              const [aMajor, aMinor, aPatch] = a.split('.').map(Number);
+              const [bMajor, bMinor, bPatch] = b.split('.').map(Number);
+              
+              if (aMajor !== bMajor) return aMajor - bMajor;
+              if (aMinor !== bMinor) return aMinor - bMinor;
+              return aPatch - bPatch;
+            });
+            
+            console.log(`Versions to process: ${JSON.stringify(sortedVersions)}`);
+            
+            core.setOutput('versions', JSON.stringify(sortedVersions));
+
+  process-versions:
+    needs: fetch-versions
+    runs-on: ubuntu-latest
+    if: ${{ needs.fetch-versions.outputs.versions != '[]' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Process versions sequentially
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=js
+          script: |
+            const versions = JSON.parse('${{ needs.fetch-versions.outputs.versions }}');
+            const force = '${{ inputs.force }}' === 'true';
+            const markLatest = '${{ inputs.mark_latest }}' === 'true';
+            
+            console.log(`Processing ${versions.length} versions sequentially...`);
+            
+            // Process each version one by one
+            for (let i = 0; i < versions.length; i++) {
+              const version = versions[i];
+              const isLastVersion = i === versions.length - 1;
+              
+              console.log(`Processing version ${version} (${i + 1}/${versions.length})...`);
+              
+              // Check if this version already exists in our releases
+              let versionExists = false;
+              if (!force) {
+                try {
+                  await github.rest.repos.getReleaseByTag({
+                    owner: process.env.REPO_OWNER,
+                    repo: process.env.REPO_NAME,
+                    tag: version
+                  });
+                  versionExists = true;
+                  console.log(`Version ${version} already exists in GitHub releases.`);
+                } catch (error) {
+                  if (error.status !== 404) {
+                    throw error;
+                  }
+                  // Release doesn't exist, continue
+                  console.log(`Version ${version} does not exist in GitHub releases.`);
+                }
+              }
+              
+              if (force || !versionExists) {
+                // Trigger the build-and-release workflow for this version
+                console.log(`Triggering build-and-release workflow for version ${version}...`);
+                
+                // Should we mark this version as latest?
+                const shouldMarkAsLatest = markLatest && isLastVersion;
+                
+                await github.rest.actions.createWorkflowDispatch({
+                  owner: process.env.REPO_OWNER,
+                  repo: process.env.REPO_NAME,
+                  workflow_id: 'build-and-release.yml',
+                  ref: 'main',
+                  inputs: {
+                    version: version,
+                    force: force.toString(),
+                    mark_as_latest: shouldMarkAsLatest.toString()
+                  }
+                });
+                
+                // Wait for the workflow to complete before proceeding to the next version
+                // This is a simple delay - in a production environment, you might want to
+                // implement a more sophisticated check to wait for the workflow to complete
+                console.log(`Waiting for build-and-release workflow to complete...`);
+                await new Promise(resolve => setTimeout(resolve, 8 * 60 * 1000)); // Wait 5 minutes
+              }
+            }
+            
+            console.log(`All versions have been processed.`); 
