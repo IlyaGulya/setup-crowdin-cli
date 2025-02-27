@@ -127,6 +127,8 @@ jobs:
     needs: fetch-versions
     runs-on: ubuntu-latest
     if: ${{ needs.fetch-versions.outputs.versions != '[]' }}
+    permissions:
+      actions: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -178,8 +180,8 @@ jobs:
                 const shouldMarkAsLatest = markLatest && isLastVersion;
                 
                 await github.rest.actions.createWorkflowDispatch({
-                  owner: process.env.REPO_OWNER,
-                  repo: process.env.REPO_NAME,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
                   workflow_id: 'build-and-release.yml',
                   ref: 'master',
                   inputs: {
