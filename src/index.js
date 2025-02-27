@@ -57,7 +57,7 @@ async function run() {
       await io.mkdirP(tempDir);
       
       // Determine the download URL
-      const owner = process.env.GITHUB_REPOSITORY_OWNER || 'IlyaGulya';
+      const owner = (process.env.GITHUB_REPOSITORY_OWNER || 'ilyagulya').toLowerCase();
       const registry = 'ghcr.io';
       
       // Use separate container for each architecture
