@@ -256,7 +256,7 @@ jobs:
           git tag $VERSION
           
           # Push the tag to the repository
-          git push origin $VERSION          
+          git push --force origin $VERSION          
 
       - name: Create GitHub Release
         id: create_release
