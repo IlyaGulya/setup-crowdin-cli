@@ -181,7 +181,7 @@ jobs:
                   owner: process.env.REPO_OWNER,
                   repo: process.env.REPO_NAME,
                   workflow_id: 'build-and-release.yml',
-                  ref: 'main',
+                  ref: 'master',
                   inputs: {
                     version: version,
                     force: force.toString(),
