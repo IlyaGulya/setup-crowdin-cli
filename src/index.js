@@ -11,10 +11,10 @@ async function run() {
   try {
     // Get inputs
     const version = core.getInput('version') || 'latest';
-    const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN;
+    const githubToken = core.getInput('github_token');
     
     if (!githubToken) {
-      throw new Error('GitHub token is required. Please provide it via the github_token input or ensure GITHUB_TOKEN environment variable is available.');
+      throw new Error('GitHub token is required. Please provide it via the github_token input.');
     }
     
     // Check if version meets minimum requirement (if not 'latest')
