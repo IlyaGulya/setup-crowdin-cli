@@ -1,6 +1,6 @@
 {
   "name": "setup-crowdin-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "GitHub Action to set up Crowdin CLI",
   "main": "dist/index.js",
   "scripts": {
