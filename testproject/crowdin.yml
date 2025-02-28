@@ -1,8 +1,0 @@
-base_path: "."
-base_url: "https://api.crowdin.com"
-
-preserve_hierarchy: true
-
-files:
-    - "source": "/commands.yml"
-      "translation": "/commands-%two_letters_code%.yml"

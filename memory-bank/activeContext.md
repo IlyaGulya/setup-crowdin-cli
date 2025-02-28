@@ -4,48 +4,42 @@
 
 We are currently focused on simplifying and improving the GitHub Actions workflow for the Crowdin CLI setup action:
 
-1. **GitHub Workflow Simplification**
-   - Rewriting the workflow to publish releases directly to GitHub instead of using Docker container registry
-   - Simplifying the codebase to focus solely on the user's repository (ilyagulya/setup-crowdin-cli)
-   - Implementing a more straightforward version checking mechanism
-   - Using GitHub Script with Octokit for GitHub API interactions
-   - Using `softprops/action-gh-release` for creating GitHub releases
-
-2. **Code Improvements**
-   - Adding JSDoc comments to improve code documentation and type hinting
-   - Replacing direct fetch calls with Octokit API methods
-   - Hardcoding repository information for simplicity and clarity
+1. **Action Simplification**
+   - Streamlining the setup action to download binaries from the standalone repository
+   - Simplifying the version checking logic
+   - Removing the "executable-" prefix handling
    - Enhancing error handling throughout the codebase
 
-3. **Workflow Process Refinement**
-   - Creating an orphan branch for each version
-   - Creating a `.crowdin-version` file with the version number
-   - Committing and tagging changes
-   - Downloading artifacts and publishing releases to GitHub
+2. **Code Improvements**
+   - Using Octokit for GitHub API interactions
+   - Implementing proper error handling for API calls
+   - Adding JSDoc comments for better code documentation
+   - Enforcing minimum version requirement of Crowdin CLI 4.4.0
+
+3. **Testing and Documentation**
+   - Testing the updated action with the standalone repository
+   - Updating documentation to reflect the changes
+   - Ensuring backward compatibility with existing tool cache entries
 
 ## Recent Changes
 
-- Rewrote the `build-and-release.yml` workflow to publish releases directly to GitHub
-- Simplified the codebase to focus solely on the user's repository
-- Added environment variables for repository owner and name
-- Updated the version checking logic to use hardcoded repository values
-- Replaced fetch calls with Octokit API methods in `src/index.js`
-- Enhanced error handling for API calls
-- Updated the `check-for-updates` job to use GitHub Script with Octokit
-- Reverted from using Octokit for release creation to using `softprops/action-gh-release`
-- Added JSDoc comments to `src/index.js` to improve code documentation and type hinting
+- Updated the action to download binaries from the standalone repository
+- Removed the "executable-" prefix handling
+- Simplified the version checking logic
+- Added JSDoc comments to improve code documentation
+- Enforced minimum version requirement of Crowdin CLI 4.4.0
 
 ## Next Steps
 
-1. Test the updated workflow
-   - Test the GitHub release creation process
-   - Verify that version checking works correctly
+1. Test the updated action
    - Test the binary download and setup process
+   - Verify that version checking works correctly
+   - Ensure backward compatibility with existing tool cache entries
 
 2. Update documentation
-   - Document the new workflow process
    - Update usage examples
-   - Clarify the release process
+   - Document configuration options
+   - Clarify version requirements
 
 3. Consider additional improvements
    - Further enhance error handling
@@ -54,22 +48,22 @@ We are currently focused on simplifying and improving the GitHub Actions workflo
 
 ## Active Decisions and Considerations
 
-1. **GitHub Release Strategy**
-   - Using GitHub releases instead of Docker container registry for simplicity
-   - Creating an orphan branch for each version to maintain a clean history
-   - Using tags for versioning and release identification
+1. **Binary Distribution Approach**
+   - Using GitHub releases from the standalone repository for binary distribution
+   - Simplifying the download process
+   - Removing the "executable-" prefix for simplicity
 
 2. **API Interaction Approach**
    - Using Octokit for GitHub API interactions for better type safety and error handling
-   - Using GitHub Script for workflow operations to simplify the workflow
-   - Using `softprops/action-gh-release` for creating releases as it's simpler and more reliable
+   - Simplifying the version checking logic
+   - Enhancing error handling for API calls
 
 3. **Code Documentation**
    - Adding JSDoc comments to improve code documentation and type hinting
    - Ensuring clear error messages and logging
    - Maintaining code clarity and readability
 
-4. **Repository Simplification**
-   - Focusing solely on the user's repository instead of supporting multiple repositories
-   - Hardcoding repository information for simplicity and clarity
-   - Streamlining the workflow to reduce complexity 
+4. **Version Requirements**
+   - Enforcing minimum version requirement of Crowdin CLI 4.4.0
+   - Providing clear error messages for unsupported versions
+   - Ensuring compatibility with the latest features and fixes 

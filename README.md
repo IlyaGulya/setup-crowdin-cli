@@ -15,7 +15,7 @@ steps:
   - name: Setup Crowdin CLI
     uses: IlyaGulya/setup-crowdin-cli@v1
     with:
-      version: '3.16.0'  # Optional, defaults to latest
+      version: '4.4.0'  # Optional, defaults to latest
 
   - name: Use Crowdin CLI
     run: crowdin upload sources
@@ -23,39 +23,26 @@ steps:
 
 ## Inputs
 
-| Name    | Description                                | Required | Default |
-|---------|--------------------------------------------|----------|---------|
-| version | Version of Crowdin CLI to use (e.g. 3.16.0) | No       | latest  |
+| Name    | Description                                                                              | Required | Default |
+|---------|------------------------------------------------------------------------------------------|----------|---------|
+| version | Version of Crowdin CLI to use (e.g. 4.4.0). Only versions 4.4.0 and above are supported. | No       | latest  |
 
 ## Supported Platforms
 
-- Linux (x64, arm64)
+- Linux (x86_64, arm64)
 - macOS (Intel, Apple Silicon)
-
-Windows is not currently supported by the native binaries. If you need Windows support, please use the official Crowdin CLI action instead.
+- Windows (x86_64)
 
 ## How It Works
 
-This action uses GitHub Container Registry to store pre-built native executables for Crowdin CLI. When you run the action, it:
+This action downloads pre-built native executables for Crowdin CLI directly from GitHub releases. When you run the action, it:
 
 1. Determines your platform and architecture
-2. Downloads the appropriate binary directly from the architecture-specific container
+2. Downloads the appropriate binary for your platform from GitHub releases
 3. Caches it using GitHub's tool cache
 4. Adds it to the PATH so you can use it in subsequent steps
 
-## Architecture-Specific Containers
-
-The binaries are stored in architecture-specific containers with the following naming pattern:
-- `ghcr.io/[owner]/crowdin-cli-linux-amd64`
-- `ghcr.io/[owner]/crowdin-cli-linux-arm64`
-- `ghcr.io/[owner]/crowdin-cli-macos-x86_64`
-- `ghcr.io/[owner]/crowdin-cli-macos-arm64`
-
-This approach allows the action to download only the binary needed for your specific platform, making the process faster and more efficient. If an architecture-specific container is not available, the action will fall back to the generic container.
-
-## No Docker Dependency
-
-Unlike many container-based actions, this action doesn't require Docker to be installed on the runner. It directly interacts with the container registry API to download the binaries, making it faster and more lightweight.
+The action automatically selects the correct binary for your runner's operating system and architecture, making it simple to use across different environments.
 
 ## Building Manually
 
@@ -64,7 +51,7 @@ You can trigger a manual build for a specific version using the GitHub Actions w
 1. Go to the Actions tab in this repository
 2. Select the "Build and Push Crowdin CLI Binaries" workflow
 3. Click "Run workflow"
-4. Enter the version you want to build (e.g., "3.16.0")
+4. Enter the version you want to build (e.g., "4.4.0")
 5. Check "Force rebuild" if you want to rebuild an existing version
 6. Click "Run workflow"
 

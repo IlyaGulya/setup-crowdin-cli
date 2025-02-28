@@ -13,6 +13,14 @@ async function run() {
     const version = core.getInput('version') || 'latest';
     const githubToken = core.getInput('github_token', { required: true });
     
+    // Check if version meets minimum requirement (if not 'latest')
+    if (version !== 'latest') {
+      const minVersion = '4.4.0';
+      if (!isVersionGreaterOrEqual(version, minVersion)) {
+        throw new Error(`Only Crowdin CLI versions ${minVersion} and above are supported. You specified: ${version}`);
+      }
+    }
+    
     // Determine platform and architecture
     const platform = os.platform();
     const arch = os.arch();
@@ -23,7 +31,7 @@ async function run() {
     
     if (platform === 'linux') {
       if (arch === 'x64') {
-        binaryName = 'crowdin-cli-linux-amd64';
+        binaryName = 'crowdin-cli-linux-x86_64';
       } else if (arch === 'arm64') {
         binaryName = 'crowdin-cli-linux-arm64';
       }
@@ -34,8 +42,11 @@ async function run() {
         binaryName = 'crowdin-cli-macos-arm64';
       }
     } else if (platform === 'win32') {
-      // Windows is not supported by native binaries
-      throw new Error('Windows platform is not yet supported by this action.');
+      if (arch === 'x64') {
+        binaryName = 'crowdin-cli-windows-x86_64.exe';
+      } else {
+        throw new Error(`Windows platform only supports x86_64 architecture. Your architecture: ${arch}`);
+      }
     }
     
     if (!binaryName) {
@@ -53,9 +64,9 @@ async function run() {
       const tempDir = path.join(os.tmpdir(), 'crowdin-cli-download');
       await io.mkdirP(tempDir);
       
-      // Use the current repository
+      // Use the standalone repository
       const owner = 'ilyagulya';
-      const repo = 'setup-crowdin-cli';
+      const repo = 'crowdin-cli-standalone';
       
       // Determine the download URL
       let releaseVersion = version;
@@ -68,6 +79,7 @@ async function run() {
       if (version === 'latest') {
         core.info('Getting latest release version...');
         try {
+          // Get the latest release
           const { data: latestRelease } = await octokit.rest.repos.getLatestRelease({
             owner,
             repo
@@ -86,7 +98,7 @@ async function run() {
       const binaryUrl = `https://github.com/${owner}/${repo}/releases/download/${releaseVersion}/${binaryName}`;
       core.info(`Downloading from: ${binaryUrl}`);
       
-      const binaryPath = path.join(tempDir, 'crowdin');
+      const binaryPath = path.join(tempDir, platform === 'win32' ? 'crowdin.exe' : 'crowdin');
       
       try {
         // Download the binary
@@ -95,11 +107,13 @@ async function run() {
         // Copy to the expected location
         fs.copyFileSync(downloadedPath, binaryPath);
         
-        // Make the binary executable
-        fs.chmodSync(binaryPath, '755');
+        // Make the binary executable (not needed for Windows)
+        if (platform !== 'win32') {
+          fs.chmodSync(binaryPath, '755');
+        }
         
         // Cache the tool
-        toolPath = await tc.cacheFile(binaryPath, 'crowdin', toolName, version);
+        toolPath = await tc.cacheFile(binaryPath, platform === 'win32' ? 'crowdin.exe' : 'crowdin', toolName, releaseVersion);
       } catch (error) {
         throw new Error(`Failed to download Crowdin CLI ${version}: ${error.message}`);
       }
@@ -109,7 +123,7 @@ async function run() {
     core.addPath(toolPath);
     
     // Output the version for verification
-    await exec.exec(path.join(toolPath, 'crowdin'), ['--version']);
+    await exec.exec(path.join(toolPath, platform === 'win32' ? 'crowdin.exe' : 'crowdin'), ['--version']);
     
     core.info('Crowdin CLI has been set up successfully!');
     
@@ -140,6 +154,27 @@ async function findFiles(dir) {
   }
   
   return files;
+}
+
+/**
+ * Compares two version strings
+ * @param {string} version1 - First version to compare
+ * @param {string} version2 - Second version to compare
+ * @returns {boolean} - True if version1 is greater than or equal to version2
+ */
+function isVersionGreaterOrEqual(version1, version2) {
+  const v1Parts = version1.split('.').map(Number);
+  const v2Parts = version2.split('.').map(Number);
+  
+  for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+    const v1Part = v1Parts[i] || 0;
+    const v2Part = v2Parts[i] || 0;
+    
+    if (v1Part > v2Part) return true;
+    if (v1Part < v2Part) return false;
+  }
+  
+  return true; // Versions are equal
 }
 
 run(); 
