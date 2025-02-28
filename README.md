@@ -16,6 +16,14 @@ steps:
     uses: IlyaGulya/setup-crowdin-cli@v1
     with:
       version: '4.4.0'  # Optional, defaults to latest
+      # github_token is optional - if not provided, the default GITHUB_TOKEN will be used
+
+  # Or with explicit token:
+  - name: Setup Crowdin CLI with explicit token
+    uses: IlyaGulya/setup-crowdin-cli@v1
+    with:
+      version: '4.4.0'  # Optional, defaults to latest
+      github_token: ${{ secrets.GITHUB_TOKEN }}
 
   - name: Use Crowdin CLI
     run: crowdin upload sources
@@ -23,9 +31,10 @@ steps:
 
 ## Inputs
 
-| Name    | Description                                                                              | Required | Default |
-|---------|------------------------------------------------------------------------------------------|----------|---------|
-| version | Version of Crowdin CLI to use (e.g. 4.4.0). Only versions 4.4.0 and above are supported. | No       | latest  |
+| Name         | Description                                                                              | Required | Default      |
+|--------------|------------------------------------------------------------------------------------------|----------|--------------|
+| version      | Version of Crowdin CLI to use (e.g. 4.4.0). Only versions 4.4.0 and above are supported. | No       | latest       |
+| github_token | GitHub token for API access to fetch binary release information.                         | No       | GITHUB_TOKEN |
 
 ## Supported Platforms
 
@@ -42,7 +51,8 @@ This action downloads pre-built native executables for Crowdin CLI directly from
 3. Caches it using GitHub's tool cache
 4. Adds it to the PATH so you can use it in subsequent steps
 
-The action automatically selects the correct binary for your runner's operating system and architecture, making it simple to use across different environments.
+The action automatically selects the correct binary for your runner's operating system and architecture, making it simple to use across different
+environments.
 
 ## Building Manually
 
