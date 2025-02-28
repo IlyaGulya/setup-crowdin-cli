@@ -11,8 +11,8 @@ inputs:
     required: false
     default: 'latest'
   github_token:
-    description: 'GitHub token for API access to fetch release information'
-    required: true
+    description: 'GitHub token for API access to fetch release information. If not provided, the default GITHUB_TOKEN will be used.'
+    required: false
 
 runs:
   using: 'node20'

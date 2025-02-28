@@ -16,6 +16,14 @@ steps:
     uses: IlyaGulya/setup-crowdin-cli@v1
     with:
       version: '4.4.0'  # Optional, defaults to latest
+      # github_token is optional - if not provided, the default GITHUB_TOKEN will be used
+
+  # Or with explicit token:
+  - name: Setup Crowdin CLI with explicit token
+    uses: IlyaGulya/setup-crowdin-cli@v1
+    with:
+      version: '4.4.0'  # Optional, defaults to latest
+      github_token: ${{ secrets.GITHUB_TOKEN }}
 
   - name: Use Crowdin CLI
     run: crowdin upload sources
@@ -26,6 +34,7 @@ steps:
 | Name    | Description                                                                              | Required | Default |
 |---------|------------------------------------------------------------------------------------------|----------|---------|
 | version | Version of Crowdin CLI to use (e.g. 4.4.0). Only versions 4.4.0 and above are supported. | No       | latest  |
+| github_token | GitHub token for API access to fetch release information. If not provided, the default GITHUB_TOKEN will be used. | No | GITHUB_TOKEN |
 
 ## Supported Platforms
 

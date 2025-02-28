@@ -48,9 +48,6 @@ jobs:
       
       - name: Setup Crowdin CLI (Local Action)
         uses: ./
-        with:
-          version: 'latest'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify Crowdin CLI installation
         run: |
