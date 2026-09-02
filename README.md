@@ -31,14 +31,14 @@ removed. Pin a `4.x` version if you are not ready to migrate.
 ```yaml
 steps:
   - name: Setup Crowdin CLI
-    uses: IlyaGulya/setup-crowdin-cli@v1
+    uses: IlyaGulya/setup-crowdin-cli@v2
     with:
       version: '5.0.1'  # Optional, defaults to latest
       # github_token is optional - if not provided, the default GITHUB_TOKEN will be used
 
   # Or with explicit token:
   - name: Setup Crowdin CLI with explicit token
-    uses: IlyaGulya/setup-crowdin-cli@v1
+    uses: IlyaGulya/setup-crowdin-cli@v2
     with:
       version: '5.0.1'  # Optional, defaults to latest
       github_token: ${{ secrets.GITHUB_TOKEN }}
