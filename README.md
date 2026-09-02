@@ -6,7 +6,25 @@ This GitHub Action sets up [Crowdin CLI](https://github.com/crowdin/crowdin-cli)
 2. Adding it to the GitHub Actions tool cache
 3. Adding it to the PATH
 
-The native executables are built using GraalVM, which means they start faster and don't require Java to be installed.
+The executables are native, so they start fast and do not require Java.
+
+## Where binaries come from
+
+Crowdin CLI 5.0.0 was rewritten from Java to TypeScript and upstream started
+publishing native binaries itself, so the action picks its source by version:
+
+| Requested version | Source                              |
+|-------------------|-------------------------------------|
+| `latest`          | `crowdin/crowdin-cli` (official)    |
+| `>= 5.0.0`        | `crowdin/crowdin-cli` (official)    |
+| `4.4.0` - `4.15.1`| `ilyagulya/crowdin-cli-standalone`  |
+
+Upstream never shipped native builds for 4.x, so those versions keep resolving
+to the standalone repository, where they are compiled with GraalVM.
+
+Note that 5.x contains breaking changes: `upload sources` / `upload translations`
+are now a single `crowdin upload`, `download sources` is gone, and `--debug` was
+removed. Pin a `4.x` version if you are not ready to migrate.
 
 ## Usage
 
@@ -15,25 +33,25 @@ steps:
   - name: Setup Crowdin CLI
     uses: IlyaGulya/setup-crowdin-cli@v1
     with:
-      version: '4.4.0'  # Optional, defaults to latest
+      version: '5.0.1'  # Optional, defaults to latest
       # github_token is optional - if not provided, the default GITHUB_TOKEN will be used
 
   # Or with explicit token:
   - name: Setup Crowdin CLI with explicit token
     uses: IlyaGulya/setup-crowdin-cli@v1
     with:
-      version: '4.4.0'  # Optional, defaults to latest
+      version: '5.0.1'  # Optional, defaults to latest
       github_token: ${{ secrets.GITHUB_TOKEN }}
 
   - name: Use Crowdin CLI
-    run: crowdin upload sources
+    run: crowdin upload
 ```
 
 ## Inputs
 
 | Name         | Description                                                                              | Required | Default      |
 |--------------|------------------------------------------------------------------------------------------|----------|--------------|
-| version      | Version of Crowdin CLI to use (e.g. 4.4.0). Only versions 4.4.0 and above are supported. | No       | latest       |
+| version      | Version of Crowdin CLI to use (e.g. 5.0.1), or `latest`. Versions 4.4.0 and above are supported. | No       | latest       |
 | github_token | GitHub token for API access to fetch binary release information.                         | No       | GITHUB_TOKEN |
 
 ## Supported Platforms
@@ -56,14 +74,9 @@ environments.
 
 ## Building Manually
 
-You can trigger a manual build for a specific version using the GitHub Actions workflow:
-
-1. Go to the Actions tab in this repository
-2. Select the "Build and Push Crowdin CLI Binaries" workflow
-3. Click "Run workflow"
-4. Enter the version you want to build (e.g., "4.4.0")
-5. Check "Force rebuild" if you want to rebuild an existing version
-6. Click "Run workflow"
+Only relevant for `4.x`, which is built in
+[ilyagulya/crowdin-cli-standalone](https://github.com/ilyagulya/crowdin-cli-standalone).
+Releases `5.0.0` and above are published by Crowdin, so nothing needs building here.
 
 ## License
 

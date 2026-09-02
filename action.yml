@@ -7,7 +7,10 @@ branding:
 
 inputs:
   version:
-    description: 'Version of Crowdin CLI to use (e.g. 4.4.0). Only versions 4.4.0 and above are supported.'
+    description: >-
+      Version of Crowdin CLI to use (e.g. 5.0.1), or "latest".
+      Versions 5.0.0 and above are fetched from the official crowdin/crowdin-cli
+      releases; 4.4.0-4.15.1 come from ilyagulya/crowdin-cli-standalone.
     required: false
     default: 'latest'
   github_token:
@@ -16,5 +19,5 @@ inputs:
     default: ${{ github.token }}
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js' 

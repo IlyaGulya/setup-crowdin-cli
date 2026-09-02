@@ -24,42 +24,15 @@ async function run() {
         throw new Error(`Only Crowdin CLI versions ${minVersion} and above are supported. You specified: ${version}`);
       }
     }
-    
+
     // Determine platform and architecture
     const platform = os.platform();
     const arch = os.arch();
-    
-    // Map to platform format for binary name
-    /** @type {string} */
-    let binaryName;
-    
-    if (platform === 'linux') {
-      if (arch === 'x64') {
-        binaryName = 'crowdin-cli-linux-x86_64';
-      } else if (arch === 'arm64') {
-        binaryName = 'crowdin-cli-linux-arm64';
-      }
-    } else if (platform === 'darwin') {
-      if (arch === 'x64') {
-        binaryName = 'crowdin-cli-macos-x86_64';
-      } else if (arch === 'arm64') {
-        binaryName = 'crowdin-cli-macos-arm64';
-      }
-    } else if (platform === 'win32') {
-      if (arch === 'x64') {
-        binaryName = 'crowdin-cli-windows-x86_64.exe';
-      } else {
-        throw new Error(`Windows platform only supports x86_64 architecture. Your architecture: ${arch}`);
-      }
-    }
-    
-    if (!binaryName) {
-      throw new Error(`Unsupported platform: ${platform} ${arch}`);
-    }
-    
-    // Check if the tool is already cached
+
+    // Check if the tool is already cached. A 'latest' request cannot be looked
+    // up until the tag it resolves to is known, so it is checked after resolving.
     const toolName = 'crowdin';
-    let toolPath = tc.find(toolName, version);
+    let toolPath = version === 'latest' ? '' : tc.find(toolName, version);
     
     if (!toolPath) {
       core.info(`Downloading Crowdin CLI ${version} for ${platform}/${arch}...`);
@@ -68,17 +41,19 @@ async function run() {
       const tempDir = path.join(os.tmpdir(), 'crowdin-cli-download');
       await io.mkdirP(tempDir);
       
-      // Use the standalone repository
-      const owner = 'ilyagulya';
-      const repo = 'crowdin-cli-standalone';
-      
-      // Determine the download URL
-      let releaseVersion = version;
-      
-      // Get authenticated GitHub client
+      // Crowdin CLI 5.0.0 dropped the JVM and started publishing native
+      // binaries upstream, so 5.x and above come straight from the official
+      // repository. Older releases only ever had native builds in the
+      // standalone repository, so 4.x keeps resolving there.
       /** @type {ReturnType<typeof github.getOctokit>} */
       const octokit = github.getOctokit(githubToken);
-      
+
+      let releaseVersion = version;
+      let useOfficialRelease = version === 'latest' || isVersionGreaterOrEqual(version, '5.0.0');
+
+      let owner = useOfficialRelease ? 'crowdin' : 'ilyagulya';
+      let repo = useOfficialRelease ? 'crowdin-cli' : 'crowdin-cli-standalone';
+
       // If version is 'latest', get the latest release tag
       if (version === 'latest') {
         core.info('Getting latest release version...');
@@ -88,38 +63,57 @@ async function run() {
             owner,
             repo
           });
-          
+
           releaseVersion = latestRelease.tag_name;
           core.info(`Latest release version: ${releaseVersion}`);
+
+          // A 'latest' that resolves below 5.0.0 has no native asset upstream,
+          // so fall back to the standalone repository for that tag.
+          if (!isVersionGreaterOrEqual(releaseVersion, '5.0.0')) {
+            useOfficialRelease = false;
+            owner = 'ilyagulya';
+            repo = 'crowdin-cli-standalone';
+          }
         } catch (error) {
           core.warning(`Error getting latest release version: ${error.message}`);
           core.warning('Falling back to "latest" tag...');
           releaseVersion = 'latest';
         }
       }
-      
-      // Download the binary from GitHub releases
-      const binaryUrl = `https://github.com/${owner}/${repo}/releases/download/${releaseVersion}/${binaryName}`;
-      core.info(`Downloading from: ${binaryUrl}`);
-      
-      const binaryPath = path.join(tempDir, platform === 'win32' ? 'crowdin.exe' : 'crowdin');
-      
-      try {
-        // Download the binary
-        const downloadedPath = await tc.downloadTool(binaryUrl);
-        
-        // Copy to the expected location
-        fs.copyFileSync(downloadedPath, binaryPath);
-        
-        // Make the binary executable (not needed for Windows)
-        if (platform !== 'win32') {
-          fs.chmodSync(binaryPath, '755');
+
+      const binaryName = getBinaryName(platform, arch, useOfficialRelease);
+
+      core.info(`Resolved Crowdin CLI ${releaseVersion} from ${owner}/${repo}`);
+
+      // Now that 'latest' resolved to a concrete tag, the cache can be checked.
+      toolPath = tc.find(toolName, releaseVersion);
+
+      if (toolPath) {
+        core.info(`Found cached Crowdin CLI ${releaseVersion}`);
+      } else {
+        // Download the binary from GitHub releases
+        const binaryUrl = `https://github.com/${owner}/${repo}/releases/download/${releaseVersion}/${binaryName}`;
+        core.info(`Downloading from: ${binaryUrl}`);
+
+        const binaryPath = path.join(tempDir, platform === 'win32' ? 'crowdin.exe' : 'crowdin');
+
+        try {
+          // Download the binary
+          const downloadedPath = await tc.downloadTool(binaryUrl);
+
+          // Copy to the expected location
+          fs.copyFileSync(downloadedPath, binaryPath);
+
+          // Make the binary executable (not needed for Windows)
+          if (platform !== 'win32') {
+            fs.chmodSync(binaryPath, '755');
+          }
+
+          // Cache the tool
+          toolPath = await tc.cacheFile(binaryPath, platform === 'win32' ? 'crowdin.exe' : 'crowdin', toolName, releaseVersion);
+        } catch (error) {
+          throw new Error(`Failed to download Crowdin CLI ${version}: ${error.message}`);
         }
-        
-        // Cache the tool
-        toolPath = await tc.cacheFile(binaryPath, platform === 'win32' ? 'crowdin.exe' : 'crowdin', toolName, releaseVersion);
-      } catch (error) {
-        throw new Error(`Failed to download Crowdin CLI ${version}: ${error.message}`);
       }
     }
     
@@ -134,6 +128,45 @@ async function run() {
   } catch (error) {
     core.setFailed(error.message);
   }
+}
+
+/**
+ * Resolves the release asset name for a platform/architecture pair.
+ *
+ * The two sources name their assets differently: the standalone repository
+ * publishes GraalVM builds as `crowdin-cli-<os>-<arch>`, while upstream 5.x
+ * publishes Bun builds as `crowdin-<os>-<arch>`.
+ *
+ * @param {string} platform - Node's os.platform() value
+ * @param {string} arch - Node's os.arch() value
+ * @param {boolean} useOfficialRelease - Whether the asset comes from crowdin/crowdin-cli
+ * @returns {string} - Release asset name
+ */
+function getBinaryName(platform, arch, useOfficialRelease) {
+  /** @type {Record<string, Record<string, string>>} */
+  const assets = useOfficialRelease
+    ? {
+        linux: { x64: 'crowdin-linux-x64', arm64: 'crowdin-linux-arm64' },
+        darwin: { x64: 'crowdin-darwin-x64', arm64: 'crowdin-darwin-arm64' },
+        win32: { x64: 'crowdin.exe' },
+      }
+    : {
+        linux: { x64: 'crowdin-cli-linux-x86_64', arm64: 'crowdin-cli-linux-arm64' },
+        darwin: { x64: 'crowdin-cli-macos-x86_64', arm64: 'crowdin-cli-macos-arm64' },
+        win32: { x64: 'crowdin-cli-windows-x86_64.exe' },
+      };
+
+  if (platform === 'win32' && arch !== 'x64') {
+    throw new Error(`Windows platform only supports x86_64 architecture. Your architecture: ${arch}`);
+  }
+
+  const binaryName = assets[platform] && assets[platform][arch];
+
+  if (!binaryName) {
+    throw new Error(`Unsupported platform: ${platform} ${arch}`);
+  }
+
+  return binaryName;
 }
 
 /**

@@ -37,7 +37,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -52,4 +52,26 @@ jobs:
       - name: Verify Crowdin CLI installation
         run: |
           crowdin --version
-          echo "Crowdin CLI was successfully installed for ${{ matrix.platform }}!" 
+          echo "Crowdin CLI was successfully installed for ${{ matrix.platform }}!"
+
+      # 4.x resolves to the standalone repository, 5.x to the official one,
+      # so both sources are covered.
+      - name: Setup Crowdin CLI (pinned 5.x)
+        uses: ./
+        with:
+          version: '5.0.1'
+
+      - name: Verify pinned 5.x installation
+        shell: bash
+        run: |
+          crowdin --version | grep -q '^5\.0\.1$'
+
+      - name: Setup Crowdin CLI (pinned 4.x)
+        uses: ./
+        with:
+          version: '4.14.1'
+
+      - name: Verify pinned 4.x installation
+        shell: bash
+        run: |
+          crowdin --version | grep -q '^4\.14\.1$'
